@@ -1,0 +1,69 @@
+diff --git a/index.d.ts b/index.d.ts
+index 8545b3798f690d20095ba62883e104f7f1472920..0b45214c2e6af53e017b50b62bab6e2a28848c96 100644
+--- a/index.d.ts
++++ b/index.d.ts
+@@ -487,7 +487,7 @@ declare module "semantic-release" {
+      *
+      * Default: `repository` property in `package.json`, or git origin url.
+      */
+-    repositoryUrl: string;
++    repositoryUrl?: string;
+ 
+     /**
+      * The git tag format used by **semantic-release** to identify
+@@ -498,7 +498,7 @@ declare module "semantic-release" {
+      * exactly once and compile to a
+      * [valid git reference](https://git-scm.com/docs/git-check-ref-format#_description).
+      */
+-    tagFormat: string;
++    tagFormat?: string;
+ 
+     /**
+      * Define the list of plugins to use. Plugins will run in series, in
+@@ -691,26 +691,26 @@ declare module "semantic-release" {
+   export type Result =
+     | false
+     | {
+-        /**
+-         * Information related to the last release found.
+-         */
+-        lastRelease: LastRelease;
+-
+-        /**
+-         * The list of commits included in the new release.
+-         */
+-        commits: Commit[];
+-
+-        /**
+-         * Information related to the newly published release.
+-         */
+-        nextRelease: NextRelease;
+-
+-        /**
+-         * The list of releases published, one release per publish plugin.
+-         */
+-        releases: Release[];
+-      };
++      /**
++       * Information related to the last release found.
++       */
++      lastRelease: LastRelease;
++
++      /**
++       * The list of commits included in the new release.
++       */
++      commits: Commit[];
++
++      /**
++       * Information related to the newly published release.
++       */
++      nextRelease: NextRelease;
++
++      /**
++       * The list of releases published, one release per publish plugin.
++       */
++      releases: Release[];
++    };
+ 
+   /**
+    * Run semantic-release and returns a Promise that resolves to a Result
