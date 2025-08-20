@@ -7,6 +7,7 @@ on:
     paths-ignore: # prevent triggering when semantic-release commits changelog + version bump
       - 'CHANGELOG.md'
       - 'package.json'
+      - 'pnpm-lock.yaml'
 
 permissions:
   contents: write
@@ -39,6 +40,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run semantic-release
+        id: semantic
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Commit changes (changelog, version bump) to a PR instead of main
+      - name: Create Release PR
+        if: always()
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(release): update changelog and bump version'
+          branch: 'release/next'
+          title: "ci(release): ${{steps.semantic.outputs.new_release_version || 'Update changelog'}}"
+          body: 'This PR contains the release changes (CHANGELOG, version bump).'
+          base: main

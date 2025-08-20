@@ -16,24 +16,19 @@ const config: GlobalConfig = {
         changelogFile: 'CHANGELOG.md',
       },
     ],
-
-    // Creates a pull request containing changes for any files you want to publish in your repository
     [
-      'semantic-release-github-pullrequest',
+      '@semantic-release/git',
       {
-        assets: ['CHANGELOG.md', 'package.json'],
-        baseRef: 'main',
-        branch: 'release/${nextRelease.version}',
-        pullrequestTitle: 'ci(release): ${nextRelease.version}',
+        assets: ['CHANGELOG.md', 'package.json', 'pnpm-lock.yaml'],
+        message: 'ci(release): ${nextRelease.version}\n\n${nextRelease.notes}',
       },
     ],
-
     [
       '@semantic-release/github',
       {
         releasedLabels: ['released'],
-        successComment: '✅ This release is now available!',
-        failComment: '❌ Release failed, please check the logs.',
+        successComment: '✅ Release `${nextRelease.version}` is now available!',
+        failComment: '❌ Release failed. Check the logs.',
       },
     ],
   ],
