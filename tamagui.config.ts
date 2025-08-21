@@ -1,5 +1,5 @@
-import { createTamagui } from '@tamagui/core';
 import { defaultConfig, shorthands } from '@tamagui/config/v4';
+import { createTamagui } from '@tamagui/core';
 
 const customShorthands = {
   ...shorthands,
@@ -15,12 +15,15 @@ const customShorthands = {
   f: 'flex',
   jc: 'justifyContent',
   h: 'height',
-  w: 'weight',
+  w: 'width',
 } as const;
 
 const tamaguiConfig = createTamagui({
   ...defaultConfig,
   shorthands: customShorthands,
+  settings: {
+    disableRootThemeClass: true, // Disable root theme class for better SSR performance
+  },
 });
 
 export type AppConfig = typeof tamaguiConfig;
