@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { JSX } from 'react';
 import { useCallback } from 'react';
 import { Text, XStack } from 'tamagui';
 
@@ -11,7 +12,7 @@ const links = [
   { href: '/leaderboard', label: 'Leaderboard' },
 ];
 
-export default function Navbar() {
+export default function Navbar(): JSX.Element {
   const pathname = usePathname();
   const isActive = useCallback(
     (path: string) => {

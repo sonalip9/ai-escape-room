@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { YStack, Text, Button } from 'tamagui';
+import type { JSX } from 'react';
+import { Button, Text, YStack } from 'tamagui';
 
-export default function HomePage() {
+export default function HomePage(): JSX.Element {
   return (
     <YStack f={1} ai="center" jc="center" h="100vh" gap="$4" p="$4">
       <Text fontSize="$7">🕵️‍♀️ AI Escape Room</Text>

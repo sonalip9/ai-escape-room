@@ -3,12 +3,12 @@
 import '@tamagui/core/reset.css';
 import { NextThemeProvider } from '@tamagui/next-theme';
 import { useServerInsertedHTML } from 'next/navigation';
-import { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 import { TamaguiProvider } from 'tamagui';
 
 import tamaguiConfig from '../../tamagui.config';
 
-export function NextTamaguiProvider({ children }: { children: ReactNode }) {
+export function NextTamaguiProvider({ children }: { children: ReactNode }): JSX.Element {
   useServerInsertedHTML(() => {
     // Tamagui CSS for SSR
     return (
@@ -20,9 +20,7 @@ export function NextTamaguiProvider({ children }: { children: ReactNode }) {
 
   return (
     <NextThemeProvider skipNextHead>
-      <TamaguiProvider config={tamaguiConfig} disableRootThemeClass>
-        {children}
-      </TamaguiProvider>
+      <TamaguiProvider config={tamaguiConfig}>{children}</TamaguiProvider>
     </NextThemeProvider>
   );
 }

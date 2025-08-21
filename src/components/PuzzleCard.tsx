@@ -1,25 +1,32 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import type { JSX } from 'react';
 import { useState } from 'react';
-import { YStack, Text, Button, Input } from 'tamagui';
+import { Button, Input, Text, YStack } from 'tamagui';
 
 import type { Puzzle } from '@/utils/puzzles';
 
 const MotionText = motion(Text);
 
-export default function PuzzleCard({ puzzle, onSolve }: { puzzle: Puzzle; onSolve: () => void }) {
+export default function PuzzleCard({
+  puzzle,
+  onSolve,
+}: {
+  puzzle: Puzzle;
+  onSolve: () => void;
+}): JSX.Element {
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  function resetPage() {
+  function resetPage(): void {
     setSuccess(false);
     setInput('');
     onSolve();
   }
 
-  function submit() {
+  function submit(): void {
     const normalized = input.trim().toLowerCase();
     if (normalized === puzzle.answer.trim().toLowerCase()) {
       setSuccess(true);
@@ -56,7 +63,7 @@ export default function PuzzleCard({ puzzle, onSolve }: { puzzle: Puzzle; onSolv
         </MotionText>
       )}
 
-      {feedback && <Text>{feedback}</Text>}
+      {feedback != null && feedback != '' && <Text>{feedback}</Text>}
 
       <YStack ai="center">
         <Button onPress={submit}>Submit</Button>

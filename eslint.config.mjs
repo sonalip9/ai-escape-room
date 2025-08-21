@@ -9,6 +9,7 @@ import react from 'eslint-plugin-react';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -28,7 +29,7 @@ const eslintConfig = [
   {
     name: 'ai-escape-room-files',
     ignores: ['**/node_modules/**', '**/.next/**', '**/dist/**'],
-    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx', 'eslint.config.mjs'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx', "eslint.config.mjs"],
     languageOptions: { globals: globals.browser, parserOptions: { project: './tsconfig.json' } },
   },
 
@@ -39,21 +40,45 @@ const eslintConfig = [
     {
       rules: {
         'react/react-in-jsx-scope': 'off',
-        'react/jsx-curly-brace-presence': 'error'
+        'react/jsx-curly-brace-presence': 'error',
+        'react/boolean-prop-naming': 'error',
+        'react/button-has-type': 'error'
       },
     },
   ]),
 
   ...addNameToEachConfig('next/core-web-vitals', compat.config(next.configs['core-web-vitals'])),
+  {
+    rules: {
+      "@next/next/no-img-element": "error",
+      "@next/next/no-head-element": "error",
+    }
+  },
+
 
   ...addNameToEachConfig(
     'ts',
-    tseslint.config(js.configs.recommended, tseslint.configs.strict, tseslint.configs.stylistic, {
+    tseslint.config(js.configs.recommended,
+      tseslint.configs.recommendedTypeChecked,
+      tseslint.configs.stylisticTypeChecked, tseslint.configs.strictTypeChecked, {
       rules: {
         '@typescript-eslint/no-unused-vars': [
           'error',
           { argsIgnorePattern: '^_', caughtErrors: 'none' },
         ],
+
+
+        "@typescript-eslint/consistent-type-exports": "error",
+        "@typescript-eslint/consistent-type-imports": "error",
+        "@typescript-eslint/default-param-last": 'warn',
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/strict-boolean-expressions": 'warn',
+        "@typescript-eslint/promise-function-async": "warn",
+        "@typescript-eslint/prefer-destructuring": "error",
+        "@typescript-eslint/no-use-before-define": ["error", { functions: false, classes: true, variables: true }],
+        "@typescript-eslint/no-shadow": "error",
+        "@typescript-eslint/explicit-function-return-type": "error"
+
       },
     }),
   ),
@@ -64,6 +89,7 @@ const eslintConfig = [
     name: 'ai-escape-room-rules',
     rules: {
       'capitalized-comments': ['warn', 'always', { ignoreConsecutiveComments: true }],
+
       'import/order': [
         'error',
         {
@@ -71,6 +97,9 @@ const eslintConfig = [
           'newlines-between': 'always',
         },
       ],
+      'import/first': 'error',
+      'import/no-relative-packages': 'warn',
+      'import/no-mutable-exports': 'warn'
     },
     settings: {
       'import/resolver': {

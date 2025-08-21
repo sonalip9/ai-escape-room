@@ -1,13 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import type { JSX } from 'react';
 import { useEffect, useState } from 'react';
 import { Button, Text, YStack } from 'tamagui';
 
 import { supabase } from '@/lib/supabase';
-import { LeaderboardRow } from '@/types/database';
+import type { LeaderboardRow } from '@/types/database';
 
-export default function LeaderboardPage() {
+export default function LeaderboardPage(): JSX.Element {
   const router = useRouter();
 
   const [rows, setRows] = useState<LeaderboardRow[] | null>(null);
@@ -15,7 +16,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     let mounted = true;
-    async function load() {
+    async function load(): Promise<void> {
       try {
         if (supabase) {
           const { data } = await supabase
@@ -33,8 +34,10 @@ export default function LeaderboardPage() {
         if (mounted) setLoading(false);
       }
     }
-    load();
-    return () => {
+    load().catch((e: unknown) => {
+      console.error('Error loading leaderboard:', e);
+    });
+    return (): void => {
       mounted = false;
     };
   }, []);
@@ -53,7 +56,13 @@ export default function LeaderboardPage() {
         </YStack>
       ))}
 
-      <Button onPress={() => router.back()}>Back</Button>
+      <Button
+        onPress={() => {
+          router.back();
+        }}
+      >
+        Back
+      </Button>
     </YStack>
   );
 }

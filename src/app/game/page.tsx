@@ -1,8 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import type { JSX } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { YStack, Text, Button, XStack, Input } from 'tamagui';
+import { Button, Input, Text, XStack, YStack } from 'tamagui';
 
 import PuzzleCard from '@/components/PuzzleCard';
 import Timer from '@/components/Timer';
@@ -11,7 +12,7 @@ import { hardcodedPuzzles } from '@/utils/puzzles';
 
 // Game page states - New game start, play game, game over
 
-export default function GamePage() {
+export default function GamePage(): JSX.Element {
   const router = useRouter();
   const puzzles = useMemo(() => hardcodedPuzzles, []);
   const [index, setIndex] = useState(0);
@@ -21,19 +22,19 @@ export default function GamePage() {
   const [name, setName] = useState('');
 
   useEffect(() => {
-    if (startedAt && finishedAt) {
+    if (startedAt != null && finishedAt != null) {
       setTimeSeconds(Math.max(1, Math.round((finishedAt - startedAt) / 1000)));
     }
   }, [startedAt, finishedAt]);
 
-  function startGame() {
+  function startGame(): void {
     setIndex(0);
     setStartedAt(Date.now());
     setFinishedAt(null);
     setTimeSeconds(null);
   }
 
-  async function onSolve() {
+  function onSolve(): void {
     if (index < puzzles.length - 1) {
       setIndex((i) => i + 1);
     } else {
@@ -43,8 +44,8 @@ export default function GamePage() {
     }
   }
 
-  async function submitScore() {
-    if (!timeSeconds) return;
+  async function submitScore(): Promise<void> {
+    if (timeSeconds == null) return;
     // Try to insert into supabase if available
     try {
       if (supabase) {
@@ -59,7 +60,7 @@ export default function GamePage() {
   }
 
   // When finished show final screen with name input
-  if (finishedAt) {
+  if (finishedAt != null) {
     return (
       <YStack p="$4" gap="$4" ai="center" jc="center" h="100vh">
         <Text fontSize="$6">🎉 You escaped!</Text>
@@ -72,7 +73,15 @@ export default function GamePage() {
           minW="$20"
         />
         <XStack gap="$3">
-          <Button onPress={submitScore}>Submit Score</Button>
+          <Button
+            onPress={() => {
+              submitScore().catch((e: unknown) => {
+                console.error('Error submitting the score:', e);
+              });
+            }}
+          >
+            Submit Score
+          </Button>
           <Button
             onPress={() => {
               setFinishedAt(null);
@@ -94,13 +103,18 @@ export default function GamePage() {
 
       <Timer startedAt={startedAt} />
 
-      {!startedAt ? (
+      {startedAt == null ? (
         <Button onPress={startGame}>Start</Button>
       ) : (
         <PuzzleCard puzzle={puzzles[index]} onSolve={onSolve} />
       )}
 
-      <Button variant="outlined" onPress={() => router.push('/')}>
+      <Button
+        variant="outlined"
+        onPress={() => {
+          router.push('/');
+        }}
+      >
         Exit
       </Button>
     </YStack>
