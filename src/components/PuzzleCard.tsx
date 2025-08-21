@@ -1,23 +1,28 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { YStack, Text, Button, Input } from 'tamagui';
 
 import type { Puzzle } from '@/utils/puzzles';
 
+const MotionText = motion(Text);
+
 export default function PuzzleCard({ puzzle, onSolve }: { puzzle: Puzzle; onSolve: () => void }) {
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  function resetPage() {
+    setSuccess(false);
+    setInput('');
+    onSolve();
+  }
 
   function submit() {
     const normalized = input.trim().toLowerCase();
     if (normalized === puzzle.answer.trim().toLowerCase()) {
-      setFeedback('Correct!');
-      setTimeout(() => {
-        setFeedback(null);
-        setInput('');
-        onSolve();
-      }, 500);
+      setSuccess(true);
     } else {
       setFeedback('Not quite — try again.');
     }
@@ -38,6 +43,19 @@ export default function PuzzleCard({ puzzle, onSolve }: { puzzle: Puzzle; onSolv
         placeholder="Type your answer..."
         onSubmitEditing={submit}
       />
+      {success && (
+        <MotionText
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0, opacity: 0 }}
+          transition={{ type: 'spring', damping: 10, duration: 0.8 }}
+          onAnimationComplete={resetPage}
+          color="$green10"
+        >
+          🎉 Correct! 🎉
+        </MotionText>
+      )}
+
       {feedback && <Text>{feedback}</Text>}
 
       <YStack ai="center">
