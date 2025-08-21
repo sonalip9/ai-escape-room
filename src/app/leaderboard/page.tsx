@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { YStack, Text, Button } from 'tamagui';
 
@@ -7,6 +8,8 @@ import { supabase } from '@/lib/supabase';
 import { LeaderboardRow } from '@/types/database';
 
 export default function LeaderboardPage() {
+  const router = useRouter();
+
   const [rows, setRows] = useState<LeaderboardRow[] | null>(null);
   const [loading, setLoading] = useState(true);
 
