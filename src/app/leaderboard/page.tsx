@@ -1,8 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { YStack, Text, Button } from 'tamagui';
+import { Button, Text, YStack } from 'tamagui';
 
 import { supabase } from '@/lib/supabase';
 import { LeaderboardRow } from '@/types/database';
