@@ -8,7 +8,7 @@ export default function Timer({ startedAt }: { startedAt: number | null }) {
 
   useEffect(() => {
     if (!startedAt) return;
-    const t = setInterval(() => setNow(Date.now()), 500);
+    const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [startedAt]);
 
