@@ -1,2 +1,4 @@
+onlyBuiltDependencies:
+  - supabase
 patchedDependencies:
   semantic-release: patches/semantic-release.patch
