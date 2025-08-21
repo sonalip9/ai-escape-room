@@ -2,20 +2,20 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 type Insert<T extends { id: string }> = Omit<T, 'id'> & { id?: string };
 
-type GenericTable<T extends { id: string } = { id: string }> = {
+interface GenericTable<T extends { id: string } = { id: string }> {
   Row: T;
   Insert: Insert<T>;
   Update: Partial<T>;
-};
+}
 
-export type LeaderboardRow = {
+export interface LeaderboardRow {
   created_at: string | null;
   id: string;
   name: string;
   time_seconds: number;
-};
+}
 
-export type Database = {
+export interface Database {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
@@ -27,20 +27,12 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      [_ in never]: never;
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
+    Views: Record<never, never>;
+    Functions: Record<never, never>;
+    Enums: Record<never, never>;
+    CompositeTypes: Record<never, never>;
   };
-};
+}
 
 type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
 

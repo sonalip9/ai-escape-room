@@ -9,7 +9,8 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "type-check": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "inspect-lint-config": "eslint --inspect-config"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.55.0",
@@ -27,6 +28,8 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@eslint/eslintrc": "^3",
+    "@eslint/js": "^9.33.0",
+    "@next/eslint-plugin-next": "^15.5.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.4",
@@ -35,15 +38,23 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.4.7",
+    "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.3.0",
     "husky": "^9.1.7",
+    "jiti": "^2.5.1",
     "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
     "semantic-release": "^24.2.7",
     "supabase": "^2.34.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "typescript-eslint": "^8.40.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

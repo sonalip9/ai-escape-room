@@ -1,9 +1,8 @@
-import type { NextConfig } from 'next';
 import { withTamagui } from '@tamagui/next-plugin';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  skipReactNativeWebExports: true,
+  /* Config options here */
 };
 
 const tamaguiPlugin = withTamagui({
