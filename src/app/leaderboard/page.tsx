@@ -44,7 +44,7 @@ export default function LeaderboardPage() {
 
       {rows?.map((r, i) => (
         <YStack key={r.id} p="$2" br={8} bg="#f5f5f5">
-          <Text theme={'light_white'}>
+          <Text theme="light_white">
             {i + 1}. {r.name} — {r.time_seconds}s
           </Text>
         </YStack>

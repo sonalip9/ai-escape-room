@@ -25,7 +25,7 @@ export default function PuzzleCard({ puzzle, onSolve }: { puzzle: Puzzle; onSolv
 
   return (
     <YStack gap="$3" width="100%" maxW={720}>
-      <Text fontSize="$3" text={'center'}>
+      <Text fontSize="$3" text="center">
         {puzzle.question}
       </Text>
 
