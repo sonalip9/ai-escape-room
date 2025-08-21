@@ -50,7 +50,7 @@ export default function LeaderboardPage() {
         </YStack>
       ))}
 
-      <Button onPress={() => window.history.back()}>Back</Button>
+      <Button onPress={() => router.back()}>Back</Button>
     </YStack>
   );
 }
