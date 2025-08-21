@@ -22,7 +22,7 @@ export default function GamePage(): JSX.Element {
   const [name, setName] = useState('');
 
   useEffect(() => {
-    if (startedAt != null && finishedAt != null) {
+    if (startedAt !== null && finishedAt !== null) {
       setTimeSeconds(Math.max(1, Math.round((finishedAt - startedAt) / 1000)));
     }
   }, [startedAt, finishedAt]);
@@ -45,7 +45,7 @@ export default function GamePage(): JSX.Element {
   }
 
   async function submitScore(): Promise<void> {
-    if (timeSeconds == null) return;
+    if (timeSeconds === null) return;
     // Try to insert into supabase if available
     try {
       if (supabase) {
@@ -60,7 +60,7 @@ export default function GamePage(): JSX.Element {
   }
 
   // When finished show final screen with name input
-  if (finishedAt != null) {
+  if (finishedAt !== null) {
     return (
       <YStack p="$4" gap="$4" ai="center" jc="center" h="100vh">
         <Text fontSize="$6">🎉 You escaped!</Text>
@@ -103,7 +103,7 @@ export default function GamePage(): JSX.Element {
 
       <Timer startedAt={startedAt} />
 
-      {startedAt == null ? (
+      {startedAt === null ? (
         <Button onPress={startGame}>Start</Button>
       ) : (
         <PuzzleCard puzzle={puzzles[index]} onSolve={onSolve} />

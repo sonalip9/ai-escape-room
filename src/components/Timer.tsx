@@ -8,7 +8,7 @@ export default function Timer({ startedAt }: { startedAt: number | null }): JSX.
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    if (startedAt == null) return;
+    if (startedAt === null) return;
     const t = setInterval(() => {
       setNow(Date.now());
     }, 1000);
@@ -17,7 +17,7 @@ export default function Timer({ startedAt }: { startedAt: number | null }): JSX.
     };
   }, [startedAt]);
 
-  if (startedAt == null) return <Text>Timer: 0s</Text>;
+  if (startedAt === null) return <Text>Timer: 0s</Text>;
   const secs = Math.max(0, Math.round((now - startedAt) / 1000));
   return <Text>Timer: {secs}s</Text>;
 }

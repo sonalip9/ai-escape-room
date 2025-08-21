@@ -63,7 +63,7 @@ export default function PuzzleCard({
         </MotionText>
       )}
 
-      {feedback != null && feedback != '' && <Text>{feedback}</Text>}
+      {feedback !== null && feedback !== '' && <Text>{feedback}</Text>}
 
       <YStack ai="center">
         <Button onPress={submit}>Submit</Button>
