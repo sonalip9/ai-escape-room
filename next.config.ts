@@ -1,7 +1,14 @@
-import type { NextConfig } from "next";
+import { withTamagui } from '@tamagui/next-plugin';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  /* Config options here */
 };
 
-export default nextConfig;
+const tamaguiPlugin = withTamagui({
+  components: ['tamagui'],
+  config: './tamagui.config.ts',
+  appDir: true,
+});
+
+export default tamaguiPlugin(nextConfig);

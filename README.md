@@ -24,9 +24,7 @@ This project showcases:
 ## ✨ Features
 
 - **AI-Generated Puzzles**
-
   - Each game session generates three puzzles:
-
     - Riddle
     - Cipher (word scramble or substitution)
     - Math or coding challenge
@@ -34,12 +32,10 @@ This project showcases:
   - AI validates user answers.
 
 - **Escape Room Flow**
-
   - Players must solve puzzles in sequence.
   - Timer tracks total completion time.
 
 - **Leaderboard**
-
   - Stores player name and escape time.
   - Displays the top 10 fastest players.
 
