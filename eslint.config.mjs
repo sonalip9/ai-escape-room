@@ -6,6 +6,7 @@ import js from '@eslint/js';
 import next from '@next/eslint-plugin-next';
 import importPlugin from 'eslint-plugin-import';
 import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -45,6 +46,8 @@ const eslintConfig = [
       },
     },
   ]),
+
+  ...addNameToEachConfig('react-hooks', compat.config(reactHooks.configs.recommended)),
 
   ...addNameToEachConfig('next/core-web-vitals', compat.config(next.configs['core-web-vitals'])),
   {
