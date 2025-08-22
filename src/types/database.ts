@@ -1,6 +1,12 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-type Insert<T extends { id: string }> = Omit<T, 'id'> & { id?: string };
+type OptionalIfNullable<T> = {
+  [K in keyof T as null extends T[K] ? K : never]?: T[K];
+} & {
+  [K in keyof T as null extends T[K] ? never : K]: T[K];
+};
+
+type Insert<T extends { id: string }> = OptionalIfNullable<Omit<T, 'id'>> & { id?: string };
 
 interface GenericTable<T extends { id: string } = { id: string }> {
   Row: T;
@@ -15,6 +21,15 @@ export interface LeaderboardRow {
   time_seconds: number;
 }
 
+export interface PuzzleRow {
+  answer: string;
+  created_at: string;
+  id: string;
+  question: string;
+  source: string;
+  type: string;
+}
+
 export interface Database {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -24,6 +39,9 @@ export interface Database {
   public: {
     Tables: {
       leaderboard: GenericTable<LeaderboardRow> & {
+        Relationships: [];
+      };
+      puzzles: GenericTable<PuzzleRow> & {
         Relationships: [];
       };
     };
