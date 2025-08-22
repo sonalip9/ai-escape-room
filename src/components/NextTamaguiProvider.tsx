@@ -13,7 +13,15 @@ export function NextTamaguiProvider({ children }: { children: ReactNode }): JSX.
     // Tamagui CSS for SSR
     return (
       <>
-        <style dangerouslySetInnerHTML={{ __html: tamaguiConfig.getNewCSS() }} />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: tamaguiConfig.getCSS({
+              // If you are using "outputCSS" option, you should use this "exclude"
+              // if not, then you can leave the option out
+              exclude: process.env.NODE_ENV === 'production' ? 'design-system' : null,
+            }),
+          }}
+        />
       </>
     );
   });

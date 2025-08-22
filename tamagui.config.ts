@@ -22,6 +22,7 @@ const tamaguiConfig = createTamagui({
   ...defaultConfig,
   shorthands: customShorthands,
   settings: {
+    ...defaultConfig.settings,
     disableRootThemeClass: true, // Disable root theme class for better SSR performance
   },
 });

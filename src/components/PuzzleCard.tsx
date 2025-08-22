@@ -36,7 +36,7 @@ export default function PuzzleCard({
   }
 
   return (
-    <YStack gap="$3" width="100%" maxW={720}>
+    <YStack gap="$3" w="100%" maxW={720}>
       <Text fontSize="$3" text="center">
         {puzzle.question}
       </Text>
