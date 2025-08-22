@@ -13,10 +13,12 @@
     "inspect-lint-config": "eslint --inspect-config"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^2.0.13",
     "@supabase/supabase-js": "^2.55.0",
     "@tamagui/config": "^1.132.20",
     "@tamagui/core": "^1.132.20",
     "@tamagui/next-theme": "^1.132.20",
+    "ai": "^5.0.22",
     "framer-motion": "^12.23.12",
     "next": "15.4.7",
     "react": "19.1.0",
