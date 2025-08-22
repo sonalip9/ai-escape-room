@@ -32,7 +32,7 @@ export default function Navbar(): JSX.Element {
       borderColor="$black6"
     >
       <Text fontWeight="bold" fontSize="$6">
-        MyApp (active href: {pathname})
+        AI Escape Room
       </Text>
       <XStack gap="$4">
         {links.map(({ href, label }) => (
