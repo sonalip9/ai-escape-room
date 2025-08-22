@@ -1,3 +1,9 @@
+## [1.1.1](https://github.com/sonalip9/ai-escape-room/compare/v1.1.0...v1.1.1) (2025-08-22)
+
+### Bug Fixes
+
+- **ui:** tamagui theme ([#4](https://github.com/sonalip9/ai-escape-room/issues/4)) ([615ef8c](https://github.com/sonalip9/ai-escape-room/commit/615ef8ce10a6ad8295edb3b17ba88247ce44473e))
+
 # [1.1.0](https://github.com/sonalip9/ai-escape-room/compare/v1.0.0...v1.1.0) (2025-08-21)
 
 ### Features
