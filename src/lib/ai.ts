@@ -39,6 +39,16 @@ const puzzleJsonSchema = jsonSchema<Pick<Puzzle, 'question' | 'answer' | 'type'>
   },
 });
 
+export function buildPuzzlePrompt(opts: { type: PuzzleType; topic?: string }): string {
+  const { type, topic } = opts;
+  const isTopicGiven = topic !== undefined && topic.trim() !== '';
+  if (!puzzleTypes.includes(type)) {
+    throw new Error(`Invalid type requested: ${type}`);
+  }
+
+  return `Create a short and fun ${type} puzzle suitable for an escape room.${isTopicGiven ? ` Topic: ${topic}.` : ''} Return JSON only.`;
+}
+
 /**
  * Generate a puzzle using AI.
  *
@@ -55,15 +65,8 @@ export async function generatePuzzle(opts: { type: PuzzleType; topic?: string })
     throw new Error('GROQ_API_KEY not configured');
   }
 
-  const { type, topic } = opts;
-  const isTopicGiven = topic !== undefined && topic.trim() !== '';
-  if (!puzzleTypes.includes(type)) {
-    throw new Error(`Invalid type requested: ${type}`);
-  }
-
   // User prompt: request a puzzle of the given type or let model pick if forcedType undefined
-  const prompt = `
-  Create a short and fun ${type} puzzle suitable for an escape room.${isTopicGiven ? ` Topic: ${topic}.` : ''} Return JSON only.`;
+  const prompt = buildPuzzlePrompt(opts);
 
   try {
     const result = await generateObject({
