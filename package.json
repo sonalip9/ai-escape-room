@@ -10,7 +10,9 @@
     "format": "prettier --write .",
     "type-check": "tsc --noEmit",
     "prepare": "husky",
-    "inspect-lint-config": "eslint --inspect-config"
+    "inspect-lint-config": "eslint --inspect-config",
+    "test": "vitest",
+    "test:watch": "vitest --watch"
   },
   "dependencies": {
     "@ai-sdk/groq": "^2.0.13",
@@ -57,7 +59,8 @@
     "semantic-release": "^24.2.7",
     "supabase": "^2.34.3",
     "typescript": "^5",
-    "typescript-eslint": "^8.40.0"
+    "typescript-eslint": "^8.40.0",
+    "vitest": "^3.2.4"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
