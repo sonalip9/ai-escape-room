@@ -32,12 +32,12 @@ export async function saveAIPuzzle(
   await doInsert();
 }
 
-export async function getRandomPuzzleFromDB(): Promise<Omit<Puzzle, 'id'> | null> {
+export async function getRandomPuzzleFromDB(): Promise<Puzzle | null> {
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
       .from('puzzles')
-      .select('question,answer,type')
+      .select('id,question,answer,type')
       .limit(50)
       .order('created_at', { ascending: false });
 

@@ -1,5 +1,4 @@
 import { createGroq } from '@ai-sdk/groq';
-import type { GenerateObjectResult } from 'ai';
 import { generateObject, jsonSchema } from 'ai';
 
 import { type Puzzle } from '@/utils/puzzles';
@@ -11,13 +10,29 @@ if (!GROQ_KEY) {
   console.warn('GROQ_API_KEY not set — using mock AI responses');
 }
 
-const client = createGroq({ apiKey: GROQ_KEY });
+const client = GROQ_KEY ? createGroq({ apiKey: GROQ_KEY }) : undefined;
+
+const puzzleJsonSchema = jsonSchema<Pick<Puzzle, 'question' | 'answer'>>({
+  examples: [
+    { question: 'I speak without a mouth and hear without ears. What am I?', answer: 'Echo' },
+    { question: "What has keys but can't open locks?", answer: 'A piano' },
+  ],
+  required: ['question', 'answer'],
+  properties: {
+    question: { type: 'string', description: 'The puzzle question' },
+    answer: { type: 'string', description: 'The correct answer' },
+  },
+});
 
 /**
  * Generate a new puzzle.
  * Example: a simple riddle or logic puzzle.
  */
 export async function generatePuzzle(): Promise<Puzzle> {
+  if (!client) {
+    throw new Error('No AI client available');
+  }
+
   // Todo: Generate hints, Generate explanation, Vary the puzzle type, Generate `n` puzzles
   const prompt = `
   Create a short and fun text-based riddle puzzle suitable for an escape room.
@@ -29,22 +44,7 @@ export async function generatePuzzle(): Promise<Puzzle> {
   const result = await generateObject({
     model: client('moonshotai/kimi-k2-instruct'),
     prompt,
-    schema: jsonSchema<Pick<Puzzle, 'question' | 'answer'>>({
-      examples: [
-        { question: 'I speak without a mouth and hear without ears. What am I?', answer: 'Echo' },
-        { question: "What has keys but can't open locks?", answer: 'A piano' },
-      ],
-      required: ['question', 'answer'],
-      properties: {
-        question: { type: 'string', description: 'The puzzle question' },
-        answer: { type: 'string', description: 'The correct answer' },
-      },
-    }),
-  }).catch((e: unknown) => {
-    console.error('Error generating puzzle:', e);
-    return { object: { answer: '', question: '' } } as GenerateObjectResult<
-      Pick<Puzzle, 'question' | 'answer'>
-    >;
+    schema: puzzleJsonSchema,
   });
 
   console.debug('Puzzle generated:', JSON.stringify(result));

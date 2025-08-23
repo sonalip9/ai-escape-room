@@ -1,11 +1,15 @@
-export interface Puzzle {
-  id: string;
-  type: 'riddle' | 'cipher' | 'math';
-  question: string;
-  answer: string;
-}
+import type { PuzzleRow } from '@/types/database';
 
-export const hardcodedPuzzles: Puzzle[] = [
+export type PuzzleType = 'riddle' | 'cipher' | 'math';
+
+export type Puzzle = Omit<PuzzleRow, 'created_at' | 'source'>;
+
+/**
+ * Local curated fallback puzzles.
+ * These are deterministic and safe for local demos & unit tests.
+ * Keep them concise and varied (riddle, cipher, math for examples).
+ */
+export const fallbackPuzzles: Puzzle[] = [
   {
     id: 'p1',
     type: 'riddle',
@@ -14,4 +18,39 @@ export const hardcodedPuzzles: Puzzle[] = [
   },
   { id: 'p2', type: 'cipher', question: 'Solve: URYYB -> (Caesar shift 13)', answer: 'hello' },
   { id: 'p3', type: 'math', question: 'What is 7 * 6?', answer: '42' },
+  {
+    id: 'p4',
+    type: 'riddle',
+    question: "What has keys but can't open locks?",
+    answer: 'a piano',
+  },
+  {
+    id: 'p5',
+    type: 'riddle',
+    question: 'What can travel around the world while staying in a corner?',
+    answer: 'a stamp',
+  },
 ];
+
+/**
+ * Deterministic sample puzzle for unit tests.
+ * Tests can import SAMPLE_PUZZLE to assert stable behavior.
+ */
+export const SAMPLE_PUZZLE: Puzzle = fallbackPuzzles[0];
+
+/**
+ * Pick n random items from an array (non-destructive).
+ * Returns an array of length up to n.
+ */
+export function pickRandom<T>(arr: T[], n = 1): T[] {
+  if (arr.length === 0 || n <= 0) return [];
+
+  const copy = arr.slice();
+  const out: T[] = [];
+
+  while (out.length < n && copy.length > 0) {
+    const i = Math.floor(Math.random() * copy.length);
+    out.push(copy.splice(i, 1)[0]);
+  }
+  return out;
+}
