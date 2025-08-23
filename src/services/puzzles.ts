@@ -1,4 +1,3 @@
-// Src/services/puzzleService.ts
 import { supabase } from '@/lib/supabase';
 import type { Insert, PuzzleRow } from '@/types/database';
 import type { Puzzle } from '@/utils/puzzles';
@@ -8,20 +7,30 @@ const doInsert = async (p: Omit<Insert<PuzzleRow>, 'source' | 'created_at'>): Pr
   try {
     if (!supabase) return false;
 
-    const normalized = normalizeText(p.question);
+    // Build normalized answers array (unique)
+    const answers: string[] =
+      Array.isArray(p.answers) && p.answers.length > 0
+        ? p.answers.filter((a): a is string => typeof a === 'string' && a.trim().length > 0)
+        : [p.answer];
 
-    // Quick dedupe check in DB
-    const { data: existing, error: selErr } = await supabase
+    // Ensure primary answer is first (dedupe)
+    answers.unshift(p.answer.trim());
+
+    const normalizedAnswers = Array.from(new Set(answers.map((a) => normalizeText(a))));
+
+    // Build normalized question too for dedupe
+    const normalizedQuestion = normalizeText(p.question || '');
+
+    // Quick dedupe check in DB using normalized_question
+    const { data: existingByQuestion, error: queErr } = await supabase
       .from('puzzles')
       .select('id')
-      .eq('normalized_question', normalized)
+      .eq('normalized_question', normalizedQuestion)
       .limit(1);
 
-    if (selErr) {
-      console.warn('puzzleService.saveAIPuzzle select error:', selErr);
-      // Continue to attempt insert (optimistic)
-    } else if (existing.length > 0) {
-      // Already exists
+    if (queErr) {
+      console.warn('puzzleService.saveAIPuzzle select error (question):', queErr);
+    } else if (existingByQuestion.length > 0) {
       return false;
     }
 
@@ -30,7 +39,9 @@ const doInsert = async (p: Omit<Insert<PuzzleRow>, 'source' | 'created_at'>): Pr
         question: p.question,
         answer: p.answer,
         type: p.type,
-        normalized_question: normalized,
+        answers,
+        normalized_question: normalizedQuestion,
+        normalized_answers: JSON.stringify(normalizedAnswers),
         source: 'ai',
       },
     ]);
@@ -54,7 +65,7 @@ const doInsert = async (p: Omit<Insert<PuzzleRow>, 'source' | 'created_at'>): Pr
 
 /**
  * Save an AI-generated puzzle to DB (dedupe + insert).
- * - p: { question, answer, type }
+ * - p: { id?, question, answer, type, answers?: string[] }
  * - options.nonBlocking = true -> fire-and-forget
  *
  * Returns true if inserted, false if duplicate / not inserted.
@@ -79,10 +90,12 @@ export async function saveAIPuzzle(
  * Get a random puzzle from DB, optionally excluding ids.
  * Returns null if none available.
  */
-export async function getRandomPuzzleFromDB(excludeIds: string[] = []): Promise<Puzzle | null> {
+export async function getRandomPuzzleFromDB(
+  excludeIds: string[] = [],
+): Promise<Omit<Puzzle, 'answers'> | null> {
   if (!supabase) return null;
   try {
-    let query = supabase.from('puzzles').select('id,question,answer,type');
+    let query = supabase.from('puzzles').select('id,question,answer,type,normalized_answers');
 
     if (excludeIds.length > 0) {
       // .not('id','in',...) would be ideal; supabase JS supports .not('id','in',`(${ids})`)
