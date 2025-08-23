@@ -18,24 +18,31 @@ const client = GROQ_KEY ? createGroq({ apiKey: GROQ_KEY }) : undefined;
 // System instruction (invariant rules)
 const systemInstruction = `You are a puzzle generator. You must return JSON only (no explanation, no commentary).
 The JSON must have keys: "question" (string), "answer" (string), "type" (one of "riddle","cipher","math").
+Optionally include "answers" which is an array of alternative acceptable answers (synonyms).
 If "type" is "math" keep the math question simple (single-step arithmetic). If "type" is "cipher", include the encoded text only (e.g. ROT13). Output valid JSON only.`;
 
-// Schema enforces presence + type enum
-const puzzleJsonSchema = jsonSchema<Pick<Puzzle, 'question' | 'answer' | 'type'>>({
+// Schema enforces presence + type enum, and optionally answers array
+const puzzleJsonSchema = jsonSchema<Pick<Puzzle, 'question' | 'answer' | 'type' | 'answers'>>({
   examples: [
     {
       question: 'I speak without a mouth and hear without ears. What am I?',
       answer: 'Echo',
       type: 'riddle',
+      answers: ['Echo', 'an echo', 'echoes', 'sound reflection'],
     },
-    { question: 'Solve (ROT13): URYYB', answer: 'hello', type: 'cipher' },
-    { question: 'What is 7 + 5?', answer: '12', type: 'math' },
+    { question: 'Solve (ROT13): URYYB', answer: 'hello', type: 'cipher', answers: ['hello'] },
+    { question: 'What is 7 + 5?', answer: '12', type: 'math', answers: ['12', 'twelve'] },
   ],
   required: ['question', 'answer', 'type'],
   properties: {
     question: { type: 'string', description: 'The puzzle question' },
     answer: { type: 'string', description: 'The correct answer' },
     type: { type: 'string', enum: [...puzzleTypes], description: 'The puzzle type' },
+    answers: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Optional array of alternative acceptable answers (synonyms)',
+    },
   },
 });
 
@@ -46,7 +53,9 @@ export function buildPuzzlePrompt(opts: { type: PuzzleType; topic?: string }): s
     throw new Error(`Invalid type requested: ${type}`);
   }
 
-  return `Create a short and fun ${type} puzzle suitable for an escape room.${isTopicGiven ? ` Topic: ${topic}.` : ''} Return JSON only.`;
+  return `Create a short and fun ${type} puzzle suitable for an escape room.${
+    isTopicGiven ? ` Topic: ${topic}.` : ''
+  } Return JSON only. Optionally include "answers" array of synonyms (alternative acceptable answers).`;
 }
 
 /**
@@ -59,8 +68,12 @@ export function buildPuzzlePrompt(opts: { type: PuzzleType; topic?: string }): s
  * Behavior:
  * - If GROQ_KEY missing, this function throws. Caller should handle fallback (DB/local).
  * - Always returns a valid Puzzle object (with id) or throws on invalid AI response.
+ * - returns Puzzle with answers[] always present (at least [answer])
  */
-export async function generatePuzzle(opts: { type: PuzzleType; topic?: string }): Promise<Puzzle> {
+export async function generatePuzzle(opts: {
+  type: PuzzleType;
+  topic?: string;
+}): Promise<Omit<Puzzle, 'normalized_answers'>> {
   if (!client) {
     throw new Error('GROQ_API_KEY not configured');
   }
@@ -89,11 +102,18 @@ export async function generatePuzzle(opts: { type: PuzzleType; topic?: string })
       throw new Error(`AI returned invalid type: ${obj.type}`);
     }
 
+    // Ensure answers array exists and contains at least the primary answer
+    const answers: string[] =
+      Array.isArray(obj.answers) && obj.answers.length > 0
+        ? obj.answers.map((s: unknown) => String(s).trim()).filter(Boolean)
+        : [obj.answer.trim()];
+
     return {
       id: crypto.randomUUID(),
       type: typeLower,
       question: obj.question.trim(),
       answer: obj.answer.trim(),
+      answers,
     };
   } catch (err) {
     throw new Error(`generatePuzzle failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -101,14 +121,14 @@ export async function generatePuzzle(opts: { type: PuzzleType; topic?: string })
 }
 
 /**
- * Validate user's answer against the puzzle's correct answer.
+ * Validate user's answer against the puzzle's correct answer (simple local check).
  */
 export function validateAnswer(puzzle: Puzzle, userAnswer: string): boolean {
-  // WIP
-  //   const { text } = await generateText({
-  //     model: groq("llama-3.3-70b-versatile"),
-  //     prompt: `Puzzle: ${puzzle.question}\nCorrect Answer: ${puzzle.answer}\nUser Answer: ${userAnswer}\nIs the user correct? Reply with only "true" or "false".`,
-  //   });
-
-  return areAnswersEqual(userAnswer, puzzle.answer);
+  return (
+    areAnswersEqual(userAnswer, puzzle.answer) ||
+    (puzzle.normalized_answers?.some(
+      (a) => typeof a === 'string' && areAnswersEqual(userAnswer, a),
+    ) ??
+      false)
+  );
 }

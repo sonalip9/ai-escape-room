@@ -2,10 +2,7 @@ import { puzzleTypes, type PuzzleRow, type PuzzleType as PuzzleTypeDB } from '@/
 
 export type PuzzleType = PuzzleTypeDB;
 
-export type Puzzle = Omit<PuzzleRow, 'source' | 'normalized_question' | 'created_at'> & {
-  // Optional: synonyms or alternative accepted answers (future)
-  answers?: string[];
-};
+export type Puzzle = Omit<PuzzleRow, 'source' | 'normalized_question' | 'created_at'>;
 
 /**
  * Local curated fallback puzzles.
@@ -18,20 +15,40 @@ export const fallbackPuzzles: Puzzle[] = [
     type: 'riddle',
     question: 'I speak without a mouth and hear without ears. What am I?',
     answer: 'echo',
+    answers: ['echo', 'An echo', 'echoes', 'sound reflection'],
+    normalized_answers: ['echo', 'an echo', 'echoes', 'sound reflection'],
   },
-  { id: 'p2', type: 'cipher', question: 'Solve: URYYB -> (Caesar shift 13)', answer: 'hello' },
-  { id: 'p3', type: 'math', question: 'What is 7 * 6?', answer: '42' },
+  {
+    id: 'p2',
+    type: 'cipher',
+    question: 'Solve: URYYB -> (Caesar shift 13)',
+    answer: 'hello',
+    answers: ['hello'],
+    normalized_answers: ['hello'],
+  },
+  {
+    id: 'p3',
+    type: 'math',
+    question: 'What is 7 * 6?',
+    answer: '42',
+    answers: ['42', 'fourty two'],
+    normalized_answers: ['42', 'fourty two'],
+  },
   {
     id: 'p4',
     type: 'riddle',
     question: "What has keys but can't open locks?",
     answer: 'a piano',
+    answers: ['A piano', 'piano', 'keyboard'],
+    normalized_answers: ['a piano', 'piano', 'keyboard'],
   },
   {
     id: 'p5',
     type: 'riddle',
     question: 'What can travel around the world while staying in a corner?',
     answer: 'a stamp',
+    answers: ['a stamp', 'stamp', 'postage'],
+    normalized_answers: ['a stamp', 'stamp', 'postage'],
   },
 ];
 
