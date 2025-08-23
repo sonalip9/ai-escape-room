@@ -6,9 +6,9 @@ type OptionalIfNullable<T> = {
   [K in keyof T as null extends T[K] ? never : K]: T[K];
 };
 
-type Insert<T extends { id: string }> = OptionalIfNullable<Omit<T, 'id'>> & { id?: string };
+export type Insert<T extends { id: string }> = OptionalIfNullable<Omit<T, 'id'>> & { id?: string };
 
-interface GenericTable<T extends { id: string } = { id: string }> {
+export interface GenericTable<T extends { id: string } = { id: string }> {
   Row: T;
   Insert: Insert<T>;
   Update: Partial<T>;
@@ -21,7 +21,7 @@ export interface LeaderboardRow {
   time_seconds: number;
 }
 
-const puzzleTypes = ['riddle', 'cipher', 'math'] as const;
+export const puzzleTypes = ['riddle', 'cipher', 'math'] as const;
 export type PuzzleType = (typeof puzzleTypes)[number];
 
 export interface PuzzleRow {

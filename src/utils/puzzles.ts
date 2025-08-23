@@ -1,13 +1,16 @@
-import type { PuzzleRow } from '@/types/database';
+import { puzzleTypes, type PuzzleRow, type PuzzleType as PuzzleTypeDB } from '@/types/database';
 
-export type PuzzleType = 'riddle' | 'cipher' | 'math';
+export type PuzzleType = PuzzleTypeDB;
 
-export type Puzzle = Omit<PuzzleRow, 'created_at' | 'source'>;
+export type Puzzle = Omit<PuzzleRow, 'source' | 'normalized_question' | 'created_at'> & {
+  // Optional: synonyms or alternative accepted answers (future)
+  answers?: string[];
+};
 
 /**
  * Local curated fallback puzzles.
+ * Used if DB or AI cannot provide puzzles.
  * These are deterministic and safe for local demos & unit tests.
- * Keep them concise and varied (riddle, cipher, math for examples).
  */
 export const fallbackPuzzles: Puzzle[] = [
   {
@@ -53,4 +56,9 @@ export function pickRandom<T>(arr: T[], n = 1): T[] {
     out.push(copy.splice(i, 1)[0]);
   }
   return out;
+}
+
+export function getRandomPuzzleType(): PuzzleType {
+  const types = puzzleTypes;
+  return types[Math.floor(Math.random() * types.length)];
 }

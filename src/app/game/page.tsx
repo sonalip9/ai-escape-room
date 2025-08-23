@@ -5,14 +5,13 @@ import type { JSX } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Input, Spinner, Text, XStack, YStack } from 'tamagui';
 
-import type { PostPuzzleResponse } from '../api/puzzle/route';
-
+import type { PostPuzzleRequest, PostPuzzleResponse } from '@/app/api/puzzle/route';
 import PuzzleCard from '@/components/PuzzleCard';
 import Timer from '@/components/Timer';
 import { supabase } from '@/lib/supabase';
 import type { Puzzle } from '@/utils/puzzles';
 
-const NUMBER_OF_PUZZLE_PER_GAME = 2;
+const NUMBER_OF_PUZZLE_PER_GAME = 3;
 
 // Game page states - New game start, play game, game over
 
@@ -35,37 +34,41 @@ export default function GamePage(): JSX.Element {
 
   const fetchPuzzle = useCallback(async function (): Promise<void> {
     console.debug('Fetching new puzzle...');
-    const res = await fetch('/api/puzzle', { method: 'POST' });
+    const res = await fetch('/api/puzzle', {
+      method: 'POST',
+
+      body: JSON.stringify({ count: NUMBER_OF_PUZZLE_PER_GAME } as PostPuzzleRequest),
+    });
     const data = (await res.json()) as PostPuzzleResponse;
-    setPuzzles((oldVal) => [...oldVal, data.puzzle]);
+    console.debug('Fetched puzzles:', data.puzzles);
+    setPuzzles(data.puzzles);
   }, []);
 
   const startGame = useCallback(
     async function (): Promise<void> {
       console.debug('Starting new game...');
       setLoading(true);
+      await fetchPuzzle();
       setIndex(1);
       setStartedAt(Date.now());
       setFinishedAt(null);
       setTimeSeconds(null);
-      await fetchPuzzle();
       setLoading(false);
     },
     [fetchPuzzle],
   );
 
   const onSolve = useCallback(
-    async function (): Promise<void> {
+    function (): void {
       console.debug('Puzzle solved');
       if (index < NUMBER_OF_PUZZLE_PER_GAME) {
-        await fetchPuzzle();
         setIndex((i) => i + 1);
       } else {
         const end = Date.now();
         setFinishedAt(end);
       }
     },
-    [fetchPuzzle, index],
+    [index],
   );
 
   const submitScore = useCallback(
@@ -136,7 +139,7 @@ export default function GamePage(): JSX.Element {
 
       <Timer startedAt={startedAt} />
 
-      {startedAt === null ? (
+      {startedAt === null || puzzles.length === 0 ? (
         <Button
           disabled={loading}
           onPress={() => {
@@ -150,15 +153,7 @@ export default function GamePage(): JSX.Element {
           Start
         </Button>
       ) : (
-        <PuzzleCard
-          puzzle={puzzles[index - 1]}
-          onSolve={() => {
-            onSolve().catch((e: unknown) => {
-              console.error('Error solving the puzzle:', e);
-            });
-          }}
-          isLoading={loading}
-        />
+        <PuzzleCard puzzle={puzzles[index - 1]} onSolve={onSolve} isLoading={loading} />
       )}
 
       <Button
