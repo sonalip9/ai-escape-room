@@ -2,6 +2,7 @@ import { createGroq } from '@ai-sdk/groq';
 import { generateObject, jsonSchema } from 'ai';
 
 import { type Puzzle } from '@/utils/puzzles';
+import { areAnswersEqual } from '@/utils/text';
 
 const GROQ_KEY = process.env.GROQ_API_KEY;
 
@@ -66,5 +67,5 @@ export function validateAnswer(puzzle: Puzzle, userAnswer: string): boolean {
   //     prompt: `Puzzle: ${puzzle.question}\nCorrect Answer: ${puzzle.answer}\nUser Answer: ${userAnswer}\nIs the user correct? Reply with only "true" or "false".`,
   //   });
 
-  return userAnswer.trim().toLowerCase() === puzzle.answer.trim().toLowerCase();
+  return areAnswersEqual(userAnswer, puzzle.answer);
 }
