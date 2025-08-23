@@ -12,11 +12,18 @@ export interface PostPuzzleRequest {
   exclude_ids?: string[];
 }
 
+export type PuzzleResponse = Omit<Puzzle, 'answers' | 'normalized_answers'>;
 export interface PostPuzzleResponse {
-  puzzles: Puzzle[];
+  puzzles: PuzzleResponse[];
 }
 
-async function aiGenerated({ type, topic }: { type: PuzzleType; topic?: string }): Promise<Puzzle> {
+async function aiGenerated({
+  type,
+  topic,
+}: {
+  type: PuzzleType;
+  topic?: string;
+}): Promise<PuzzleResponse> {
   // Try AI first (may throw on missing key or generation failure)
   const puzzle = await generatePuzzle({ type, topic });
 
@@ -28,7 +35,7 @@ async function aiGenerated({ type, topic }: { type: PuzzleType; topic?: string }
   return puzzle;
 }
 
-async function nonAiGenerated(excludeIds: string[]): Promise<Puzzle> {
+async function nonAiGenerated(excludeIds: string[]): Promise<PuzzleResponse> {
   // Try DB fallback (service)
   const dbPuzzle = await getRandomPuzzleFromDB(excludeIds);
   if (dbPuzzle) {
@@ -46,7 +53,7 @@ async function nonAiGenerated(excludeIds: string[]): Promise<Puzzle> {
 async function generatePuzzleAPI(
   excludeIds: string[] = [],
   { type, topic }: { type?: PuzzleType | 'auto'; topic?: string } = {},
-): Promise<Puzzle> {
+): Promise<PuzzleResponse> {
   // Determine type: if omitted or auto -> pick random on server
   if (!type || type === 'auto') {
     type = getRandomPuzzleType();
@@ -67,7 +74,7 @@ export async function POST(req: Request): Promise<NextResponse<PostPuzzleRespons
   const count = Math.max(1, Math.min(10, body?.count ?? 1)); // Limit count to 10 max
   const excludeIds = Array.isArray(body?.exclude_ids) ? body.exclude_ids : [];
 
-  const puzzles: Puzzle[] = [];
+  const puzzles: PuzzleResponse[] = [];
 
   for (let i = 0; i < count; i++) {
     const p = await generatePuzzleAPI(excludeIds, { topic: body?.topic });

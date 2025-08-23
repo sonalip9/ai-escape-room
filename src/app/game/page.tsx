@@ -5,11 +5,10 @@ import type { JSX } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Input, Spinner, Text, XStack, YStack } from 'tamagui';
 
-import type { PostPuzzleRequest, PostPuzzleResponse } from '@/app/api/puzzle/route';
+import type { PostPuzzleRequest, PostPuzzleResponse, PuzzleResponse } from '@/app/api/puzzle/route';
 import PuzzleCard from '@/components/PuzzleCard';
 import Timer from '@/components/Timer';
 import { supabase } from '@/lib/supabase';
-import type { Puzzle } from '@/utils/puzzles';
 
 const NUMBER_OF_PUZZLE_PER_GAME = 3;
 
@@ -19,7 +18,7 @@ export default function GamePage(): JSX.Element {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
+  const [puzzles, setPuzzles] = useState<PuzzleResponse[]>([]);
   const [index, setIndex] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [finishedAt, setFinishedAt] = useState<number | null>(null);

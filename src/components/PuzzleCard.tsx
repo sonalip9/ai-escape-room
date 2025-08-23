@@ -5,8 +5,8 @@ import type { JSX } from 'react';
 import { useState } from 'react';
 import { Button, Input, Spinner, Text, YStack } from 'tamagui';
 
+import type { PuzzleResponse } from '@/app/api/puzzle/route';
 import type { PostValidateResponse } from '@/app/api/validate/route';
-import type { Puzzle } from '@/utils/puzzles';
 
 const MotionText = motion(Text);
 
@@ -15,7 +15,7 @@ export default function PuzzleCard({
   onSolve,
   isLoading = false,
 }: {
-  puzzle: Puzzle;
+  puzzle: PuzzleResponse;
   onSolve: () => void;
   isLoading?: boolean;
 }): JSX.Element {
