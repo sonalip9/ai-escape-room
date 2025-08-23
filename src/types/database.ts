@@ -21,13 +21,17 @@ export interface LeaderboardRow {
   time_seconds: number;
 }
 
+const puzzleTypes = ['riddle', 'cipher', 'math'] as const;
+export type PuzzleType = (typeof puzzleTypes)[number];
+
 export interface PuzzleRow {
   answer: string;
   created_at: string;
   id: string;
+  normalized_question: string | null;
   question: string;
   source: string;
-  type: string;
+  type: Database['public']['Enums']['puzzle_type'];
 }
 
 export interface Database {
@@ -47,7 +51,9 @@ export interface Database {
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;
-    Enums: Record<never, never>;
+    Enums: {
+      puzzle_type: PuzzleType;
+    };
     CompositeTypes: Record<never, never>;
   };
 }
@@ -135,8 +141,8 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-    keyof DefaultSchema['Enums'] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema['Enums']
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -169,6 +175,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      puzzle_type: puzzleTypes,
+    },
   },
 } as const;
