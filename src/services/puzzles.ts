@@ -8,13 +8,13 @@ const doInsert = async (p: Omit<Insert<PuzzleRow>, 'source' | 'created_at'>): Pr
     if (!supabase) return false;
 
     // Build normalized answers array (unique)
-    const answers: string[] =
+    let answers: string[] =
       Array.isArray(p.answers) && p.answers.length > 0
         ? p.answers.filter((a): a is string => typeof a === 'string' && a.trim().length > 0)
         : [p.answer];
 
     // Ensure primary answer is first (dedupe)
-    answers.unshift(p.answer.trim());
+    answers = Array.from(new Set([p.answer.trim(), ...answers]));
 
     const normalizedAnswers = Array.from(new Set(answers.map((a) => normalizeText(a))));
 
@@ -41,7 +41,7 @@ const doInsert = async (p: Omit<Insert<PuzzleRow>, 'source' | 'created_at'>): Pr
         type: p.type,
         answers,
         normalized_question: normalizedQuestion,
-        normalized_answers: JSON.stringify(normalizedAnswers),
+        normalized_answers: normalizedAnswers,
         source: 'ai',
       },
     ]);
@@ -99,7 +99,8 @@ export async function getRandomPuzzleFromDB(
 
     if (excludeIds.length > 0) {
       // .not('id','in',...) would be ideal; supabase JS supports .not('id','in',`(${ids})`)
-      const formattedIds = excludeIds.map((id) => id).join(',');
+      const formattedIds =
+        excludeIds.length > 1 ? excludeIds.map((id) => `'${id}'`).join(',') : excludeIds[0];
       query = query.not('id', 'in', `(${formattedIds})`);
     }
 

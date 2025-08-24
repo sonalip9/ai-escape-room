@@ -175,7 +175,7 @@ async function aiValidate(
 ): Promise<Pick<ValidationResult, 'correct' | 'confidence' | 'explanation'>> {
   if (!client) {
     // LLM not configured
-    return { correct: false, confidence: 0, explanation: 'LLM not configured' };
+    throw new Error('LLM not configured');
   }
 
   // Construct a strict prompt. Be explicit: return JSON only. Keep small.
@@ -237,6 +237,16 @@ export async function validateAnswer(
   }
 
   // AI fallback
+  if (!client) {
+    // LLM not configured
+    return {
+      correct: false,
+      confidence: 0,
+      explanation: 'LLM not configured',
+      method: 'ai_unavailable',
+    };
+  }
+
   const aiResult = await aiValidate(puzzle, userAnswer);
   return { ...aiResult, method: 'ai' };
 }
