@@ -34,7 +34,7 @@ const doInsert = async (p: Omit<Insert<PuzzleRow>, 'source' | 'created_at'>): Pr
       return false;
     }
 
-    const { error: insertErr } = await supabase.from('puzzles').insert([
+    const { error: insertErr } = await supabase.from('puzzles').insert<Insert<PuzzleRow>>([
       {
         question: p.question,
         answer: p.answer,

@@ -27,7 +27,7 @@ export type PuzzleType = (typeof puzzleTypes)[number];
 export interface PuzzleRow {
   answer: string;
   answers: Json[] | null;
-  created_at: string;
+  created_at: string | null;
   id: string;
   normalized_answers: string[] | null;
   normalized_question: string | null;
