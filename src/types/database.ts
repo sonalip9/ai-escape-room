@@ -36,6 +36,18 @@ export interface PuzzleRow {
   type: Database['public']['Enums']['puzzle_type'];
 }
 
+export interface AIAuditRow {
+  action: string;
+  created_at: string | null;
+  created_by: string | null;
+  id: string;
+  meta: Json | null;
+  model: string | null;
+  prompt: string | null;
+  puzzle_id: string | null;
+  response: Json | null;
+}
+
 export interface Database {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -44,6 +56,9 @@ export interface Database {
   };
   public: {
     Tables: {
+      ai_audit: GenericTable<AIAuditRow> & {
+        Relationships: [];
+      };
       leaderboard: GenericTable<LeaderboardRow> & {
         Relationships: [];
       };
