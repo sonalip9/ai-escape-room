@@ -14,6 +14,6 @@ export interface PostValidateResponse {
 
 export async function POST(req: Request): Promise<NextResponse<PostValidateResponse>> {
   const { puzzle, answer } = (await req.json()) as PostValidateRequest;
-  const isCorrect = validateAnswer(puzzle, answer);
-  return NextResponse.json({ correct: isCorrect });
+  const { correct } = await validateAnswer(puzzle, answer);
+  return NextResponse.json({ correct });
 }

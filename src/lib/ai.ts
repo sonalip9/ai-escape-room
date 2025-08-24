@@ -120,15 +120,123 @@ export async function generatePuzzle(opts: {
   }
 }
 
+export interface ValidationResult {
+  correct: boolean;
+  method: 'local' | 'ai' | 'ai_unavailable';
+  confidence?: number; // Optional number 0..1 returned by AI if available
+  explanation?: string;
+}
+
 /**
- * Validate user's answer against the puzzle's correct answer (simple local check).
+ * Quick synchronous local check that uses exact / normalized equality against known answers.
+ * Returns true if a definitive local match is found.
  */
-export function validateAnswer(puzzle: Puzzle, userAnswer: string): boolean {
-  return (
-    areAnswersEqual(userAnswer, puzzle.answer) ||
-    (puzzle.normalized_answers?.some(
-      (a) => typeof a === 'string' && areAnswersEqual(userAnswer, a),
-    ) ??
-      false)
-  );
+function localValidate(puzzle: Puzzle, userAnswer: string): boolean {
+  if (!userAnswer) return false;
+
+  // Quick exact normalized match with canonical answer
+  if (areAnswersEqual(userAnswer, puzzle.answer)) return true;
+
+  // If puzzle has answers array (synonyms), check against each
+  if (Array.isArray(puzzle.normalized_answers)) {
+    return puzzle.normalized_answers.some((a) => areAnswersEqual(userAnswer, a));
+  }
+
+  return false;
+}
+
+const validateJsonSchema = jsonSchema<{
+  correct: boolean;
+  confidence?: number;
+  explanation?: string;
+}>({
+  required: ['correct'],
+  properties: {
+    correct: {
+      type: 'boolean',
+      description: 'Whether the user answer should be considered correct',
+    },
+    confidence: { type: 'number', description: 'Optional confidence score 0..1' },
+    explanation: { type: 'string', description: 'Short justification if incorrect' },
+  },
+});
+
+/**
+ * Use the LLM to validate whether the user's answer is correct.
+ * Returns { correct, confidence?, explanation? }.
+ *
+ * Notes:
+ * - This is a *fallback* and should only be called when localValidate() returns false.
+ * - Uses low temperature and small maxOutputTokens to reduce cost and increase determinism.
+ */
+async function aiValidate(
+  puzzle: Puzzle,
+  userAnswer: string,
+): Promise<Pick<ValidationResult, 'correct' | 'confidence' | 'explanation'>> {
+  if (!client) {
+    // LLM not configured
+    return { correct: false, confidence: 0, explanation: 'LLM not configured' };
+  }
+
+  // Construct a strict prompt. Be explicit: return JSON only. Keep small.
+  const answersList = Array.isArray(puzzle.normalized_answers)
+    ? puzzle.normalized_answers.join(', ')
+    : puzzle.answer;
+
+  const prompt = `
+You are a strict validator for an escape-room puzzle. Return JSON only, exactly matching the schema: { "correct": boolean, "confidence"?: number, "explanation"?: string }.
+
+Puzzle question: "${puzzle.question}"
+
+Canonical answer: "${puzzle.answer}"
+
+Other accepted answers (if any): ${answersList}
+
+User's answer: "${userAnswer}"
+
+Instruction: Reply ONLY with JSON. "correct" must be true only if the user's answer is an acceptable solution to the puzzle (allow close synonyms). Keep "confidence" between 0 and 1 if present. Keep "explanation" short (one sentence) if incorrect.
+`;
+
+  try {
+    const result = await generateObject({
+      model: client('moonshotai/kimi-k2-instruct'),
+      prompt,
+      schema: validateJsonSchema,
+      temperature: 0.0,
+      maxOutputTokens: 80,
+      system: 'You are a terse validation assistant. Output JSON only.',
+    });
+
+    const obj = result.object as { correct: boolean; confidence?: number; explanation?: string };
+
+    // Defensive coercion
+    const { correct } = obj;
+    const confidence =
+      typeof obj.confidence === 'number' && Number.isFinite(obj.confidence)
+        ? Math.max(0, Math.min(1, obj.confidence))
+        : undefined;
+    const explanation = typeof obj.explanation === 'string' ? obj.explanation : undefined;
+
+    return { correct, confidence, explanation };
+  } catch (err) {
+    console.warn('aiValidate failed', err);
+    return { correct: false, confidence: 0, explanation: 'LLM error' };
+  }
+}
+
+/**
+ * Top-level async validation that first does local checks, then falls back to AI if needed.
+ */
+export async function validateAnswer(
+  puzzle: Puzzle,
+  userAnswer: string,
+): Promise<ValidationResult> {
+  // Local quick check
+  if (localValidate(puzzle, userAnswer)) {
+    return { correct: true, method: 'local', confidence: 1 };
+  }
+
+  // AI fallback
+  const aiResult = await aiValidate(puzzle, userAnswer);
+  return { ...aiResult, method: 'ai' };
 }
