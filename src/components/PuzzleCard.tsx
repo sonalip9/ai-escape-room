@@ -13,15 +13,14 @@ const MotionText = motion(Text);
 export default function PuzzleCard({
   puzzle,
   onSolve,
-  isLoading = false,
 }: {
   puzzle: PuzzleResponse;
   onSolve: () => void;
-  isLoading?: boolean;
 }): JSX.Element {
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   function resetPage(): void {
     setSuccess(false);
@@ -34,6 +33,7 @@ export default function PuzzleCard({
       setFeedback('Please enter an answer.');
       return;
     }
+    setIsLoading(true);
 
     fetch('/api/validate', {
       method: 'POST',
@@ -53,6 +53,9 @@ export default function PuzzleCard({
       .catch((e: unknown) => {
         console.error('Error validating answer:', e);
         setFeedback('An error occurred. Please try again later.');
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }
 

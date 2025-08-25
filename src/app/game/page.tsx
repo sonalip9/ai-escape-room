@@ -152,7 +152,7 @@ export default function GamePage(): JSX.Element {
           Start
         </Button>
       ) : (
-        <PuzzleCard puzzle={puzzles[index - 1]} onSolve={onSolve} isLoading={loading} />
+        <PuzzleCard puzzle={puzzles[index - 1]} onSolve={onSolve} />
       )}
 
       <Button
