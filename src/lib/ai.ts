@@ -1,10 +1,12 @@
 import { createGroq } from '@ai-sdk/groq';
-import { generateObject, jsonSchema } from 'ai';
+import { jsonSchema } from 'ai';
 
-import type { PuzzleType } from '@/types/database';
+import type { ValidationResult } from '@/app/api/validate/route';
+import { callLLM } from '@/lib/llm';
+import { recordMetric } from '@/lib/metrics';
+import { recordAudit } from '@/services/audit';
 import { puzzleTypes } from '@/types/database';
-import type { Puzzle } from '@/utils/puzzles';
-import { areAnswersEqual } from '@/utils/text';
+import type { Puzzle, PuzzleType } from '@/utils/puzzles';
 
 const GROQ_KEY = process.env.GROQ_API_KEY;
 
@@ -15,14 +17,17 @@ if (!GROQ_KEY) {
 
 const client = GROQ_KEY ? createGroq({ apiKey: GROQ_KEY }) : undefined;
 
+// --- Puzzle Generation ---
+
 // System instruction (invariant rules)
-const systemInstruction = `You are a puzzle generator. You must return JSON only (no explanation, no commentary).
+const PUZZLE_SYS_MESSAGE = `You are a puzzle generator. You must return JSON only (no explanation, no commentary).
 The JSON must have keys: "question" (string), "answer" (string), "type" (one of "riddle","cipher","math").
 Optionally include "answers" which is an array of alternative acceptable answers (synonyms).
 If "type" is "math" keep the math question simple (single-step arithmetic). If "type" is "cipher", include the encoded text only (e.g. ROT13). Output valid JSON only.`;
 
 // Schema enforces presence + type enum, and optionally answers array
-const puzzleJsonSchema = jsonSchema<Pick<Puzzle, 'question' | 'answer' | 'type' | 'answers'>>({
+type PuzzleGenerationType = Pick<Puzzle, 'question' | 'answer' | 'type' | 'answers'>;
+const PUZZLE_JSON_SCHEMA = jsonSchema<PuzzleGenerationType>({
   examples: [
     {
       question: 'I speak without a mouth and hear without ears. What am I?',
@@ -73,28 +78,55 @@ export function buildPuzzlePrompt(opts: { type: PuzzleType; topic?: string }): s
 export async function generatePuzzle(opts: {
   type: PuzzleType;
   topic?: string;
-}): Promise<Omit<Puzzle, 'normalized_answers'>> {
+}): Promise<PuzzleGenerationType & Pick<Puzzle, 'id'>> {
   if (!client) {
     throw new Error('GROQ_API_KEY not configured');
   }
 
   // User prompt: request a puzzle of the given type or let model pick if forcedType undefined
   const prompt = buildPuzzlePrompt(opts);
+  const puzzleId = crypto.randomUUID();
 
   try {
-    const result = await generateObject({
-      model: client('moonshotai/kimi-k2-instruct'),
-      prompt,
-      schema: puzzleJsonSchema,
-      maxOutputTokens: 250,
-      temperature: 0.35,
-      system: systemInstruction,
+    const { result, durationMs, error, tokensEstimate } = await callLLM({
+      metricType: 'generation',
+      generateObjectOptions: {
+        model: client('moonshotai/kimi-k2-instruct'),
+        prompt,
+        schema: PUZZLE_JSON_SCHEMA,
+        maxOutputTokens: 250,
+        temperature: 0.35,
+        system: PUZZLE_SYS_MESSAGE,
+      },
     });
+
+    const isError = error !== undefined && error !== null;
+
+    // Non-blocking audit record (don't fail validation if audit fails)
+    recordAudit({
+      puzzle_id: puzzleId,
+      action: 'generation',
+      model: 'moonshotai/kimi-k2-instruct',
+      prompt: prompt.slice(0, 4000), // Avoid extremely large fields
+      response: result?.object ?? (isError ? { error: JSON.stringify(error) } : null),
+      meta: { durationMs, tokensEstimate, success: !isError },
+      created_by: 'system',
+    }).catch((e: unknown) => {
+      console.warn('audit record failed', e);
+    });
+
+    // Record metrics (wrapper already incremented some; duplicate is ok)
+    recordMetric({ usedAI: true, tokensEstimate, durationMs, type: 'generation' });
+
+    if (isError) {
+      if (error instanceof Error) throw error;
+      throw new Error(`AI returned error: ${JSON.stringify(error)}`);
+    }
 
     console.debug('Puzzle generated:', JSON.stringify(result));
 
-    const obj = result.object;
-    if (typeof obj.question !== 'string' || typeof obj.answer !== 'string') {
+    const obj = result?.object;
+    if (!obj || typeof obj.question !== 'string' || typeof obj.answer !== 'string') {
       throw new Error('AI returned invalid puzzle object');
     }
     const typeLower = obj.type.toLowerCase() as PuzzleType;
@@ -109,7 +141,7 @@ export async function generatePuzzle(opts: {
         : [obj.answer.trim()];
 
     return {
-      id: crypto.randomUUID(),
+      id: puzzleId,
       type: typeLower,
       question: obj.question.trim(),
       answer: obj.answer.trim(),
@@ -120,36 +152,9 @@ export async function generatePuzzle(opts: {
   }
 }
 
-export interface ValidationResult {
-  correct: boolean;
-  method: 'local' | 'ai' | 'ai_unavailable';
-  confidence?: number; // Optional number 0..1 returned by AI if available
-  explanation?: string;
-}
-
-/**
- * Quick synchronous local check that uses exact / normalized equality against known answers.
- * Returns true if a definitive local match is found.
- */
-function localValidate(puzzle: Puzzle, userAnswer: string): boolean {
-  if (!userAnswer) return false;
-
-  // Quick exact normalized match with canonical answer
-  if (areAnswersEqual(userAnswer, puzzle.answer)) return true;
-
-  // If puzzle has answers array (synonyms), check against each
-  if (Array.isArray(puzzle.normalized_answers)) {
-    return puzzle.normalized_answers.some((a) => areAnswersEqual(userAnswer, a));
-  }
-
-  return false;
-}
-
-const validateJsonSchema = jsonSchema<{
-  correct: boolean;
-  confidence?: number;
-  explanation?: string;
-}>({
+// --- Puzzle Validation ---
+type PuzzleValidationType = Pick<ValidationResult, 'correct' | 'confidence' | 'explanation'>;
+const VALIDATE_JSON_SCHEMA = jsonSchema<PuzzleValidationType>({
   required: ['correct'],
   properties: {
     correct: {
@@ -161,6 +166,24 @@ const validateJsonSchema = jsonSchema<{
   },
 });
 
+export function buildValidationPrompt(puzzle: Puzzle, userAnswer: string): string {
+  // Build concise prompt (strict JSON response)
+  const answersList = Array.isArray(puzzle.normalized_answers)
+    ? puzzle.normalized_answers.join(', ')
+    : puzzle.answer;
+
+  return `
+You are a strict validator for an escape-room puzzle. Reply with JSON only, matching schema: { "correct": boolean, "confidence"?: number, "explanation"?: string }.
+
+Puzzle: ${puzzle.question}
+Canonical: ${puzzle.answer}
+Other accepted (normalized): ${answersList}
+User answer: ${userAnswer}
+
+Return ONLY JSON. "correct" should be true only for acceptable answers or close synonyms. Keep "confidence" between 0 and 1. If incorrect, provide a one-sentence "explanation".
+`.trim();
+}
+
 /**
  * Use the LLM to validate whether the user's answer is correct.
  * Returns { correct, confidence?, explanation? }.
@@ -169,84 +192,62 @@ const validateJsonSchema = jsonSchema<{
  * - This is a *fallback* and should only be called when localValidate() returns false.
  * - Uses low temperature and small maxOutputTokens to reduce cost and increase determinism.
  */
-async function aiValidate(
+export async function aiValidateAnswer(
   puzzle: Puzzle,
   userAnswer: string,
-): Promise<Pick<ValidationResult, 'correct' | 'confidence' | 'explanation'>> {
+): Promise<PuzzleValidationType> {
   if (!client) {
     // LLM not configured
-    throw new Error('LLM not configured');
+    // also record a metric (local vs ai_unavailable)
+    recordMetric({ usedAI: false, durationMs: 0, type: 'validation' });
+    return { correct: false, confidence: 0, explanation: 'LLM not configured' };
   }
 
-  // Construct a strict prompt. Be explicit: return JSON only. Keep small.
-  const answersList = Array.isArray(puzzle.normalized_answers)
-    ? puzzle.normalized_answers.join(', ')
-    : puzzle.answer;
+  const prompt = buildValidationPrompt(puzzle, userAnswer);
 
-  const prompt = `
-You are a strict validator for an escape-room puzzle. Return JSON only, exactly matching the schema: { "correct": boolean, "confidence"?: number, "explanation"?: string }.
-
-Puzzle question: "${puzzle.question}"
-
-Canonical answer: "${puzzle.answer}"
-
-Other accepted answers (if any): ${answersList}
-
-User's answer: "${userAnswer}"
-
-Instruction: Reply ONLY with JSON. "correct" must be true only if the user's answer is an acceptable solution to the puzzle (allow close synonyms). Keep "confidence" between 0 and 1 if present. Keep "explanation" short (one sentence) if incorrect.
-`;
-
-  try {
-    const result = await generateObject({
+  // Use wrapper: low temperature, small token limit, strict system
+  const { result, durationMs, tokensEstimate, error } = await callLLM({
+    metricType: 'validation',
+    generateObjectOptions: {
       model: client('moonshotai/kimi-k2-instruct'),
       prompt,
-      schema: validateJsonSchema,
+      schema: VALIDATE_JSON_SCHEMA,
       temperature: 0.0,
       maxOutputTokens: 80,
       system: 'You are a terse validation assistant. Output JSON only.',
-    });
+    },
+  });
 
-    const obj = result.object as { correct: boolean; confidence?: number; explanation?: string };
+  const isError = error !== undefined && error !== null;
 
-    // Defensive coercion
-    const { correct } = obj;
-    const confidence =
-      typeof obj.confidence === 'number' && Number.isFinite(obj.confidence)
-        ? Math.max(0, Math.min(1, obj.confidence))
-        : undefined;
-    const explanation = typeof obj.explanation === 'string' ? obj.explanation : undefined;
+  // Non-blocking audit record (don't fail validation if audit fails)
+  recordAudit({
+    puzzle_id: puzzle.id,
+    action: 'validation',
+    model: 'moonshotai/kimi-k2-instruct',
+    prompt: prompt.slice(0, 4000), // Avoid extremely large fields
+    response: result?.object ?? (isError ? { error: JSON.stringify(error) } : null),
+    meta: { durationMs, tokensEstimate, success: !isError },
+    created_by: 'system',
+  }).catch((e: unknown) => {
+    console.warn('audit record failed', e);
+  });
 
-    return { correct, confidence, explanation };
-  } catch (err) {
-    console.warn('aiValidate failed', err);
+  // Record metrics (wrapper already incremented some; duplicate is ok)
+  recordMetric({ usedAI: true, tokensEstimate, durationMs, type: 'validation' });
+
+  if (isError) {
+    console.warn('aiValidate wrapper error', error);
     return { correct: false, confidence: 0, explanation: 'LLM error' };
   }
-}
 
-/**
- * Top-level async validation that first does local checks, then falls back to AI if needed.
- */
-export async function validateAnswer(
-  puzzle: Puzzle,
-  userAnswer: string,
-): Promise<ValidationResult> {
-  // Local quick check
-  if (localValidate(puzzle, userAnswer)) {
-    return { correct: true, method: 'local', confidence: 1 };
-  }
+  const obj = result?.object;
+  const correct = Boolean(obj?.correct);
+  const confidence =
+    typeof obj?.confidence === 'number' && Number.isFinite(obj.confidence)
+      ? Math.max(0, Math.min(1, obj.confidence))
+      : undefined;
+  const explanation = typeof obj?.explanation === 'string' ? obj.explanation : undefined;
 
-  // AI fallback
-  if (!client) {
-    // LLM not configured
-    return {
-      correct: false,
-      confidence: 0,
-      explanation: 'LLM not configured',
-      method: 'ai_unavailable',
-    };
-  }
-
-  const aiResult = await aiValidate(puzzle, userAnswer);
-  return { ...aiResult, method: 'ai' };
+  return { correct, confidence, explanation };
 }

@@ -1,3 +1,5 @@
+import { areAnswersEqual } from './text';
+
 import { puzzleTypes, type PuzzleRow, type PuzzleType as PuzzleTypeDB } from '@/types/database';
 
 export type PuzzleType = PuzzleTypeDB;
@@ -78,4 +80,22 @@ export function pickRandom<T>(arr: T[], n = 1): T[] {
 export function getRandomPuzzleType(): PuzzleType {
   const types = puzzleTypes;
   return types[Math.floor(Math.random() * types.length)];
+}
+
+/**
+ * Quick synchronous local check that uses exact / normalized equality against known answers.
+ * Returns true if a definitive local match is found.
+ */
+export function localValidate(puzzle: Puzzle, userAnswer: string): boolean {
+  if (!userAnswer) return false;
+
+  // Quick exact normalized match with canonical answer
+  if (areAnswersEqual(userAnswer, puzzle.answer)) return true;
+
+  // If puzzle has answers array (synonyms), check against each
+  if (Array.isArray(puzzle.normalized_answers)) {
+    return puzzle.normalized_answers.some((a) => areAnswersEqual(userAnswer, a));
+  }
+
+  return false;
 }
