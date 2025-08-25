@@ -63,6 +63,11 @@ export function buildPuzzlePrompt(opts: { type: PuzzleType; topic?: string }): s
   } Return JSON only. Optionally include "answers" array of synonyms (alternative acceptable answers).`;
 }
 
+export interface GeneratePuzzleOptions {
+  type: PuzzleType;
+  topic?: string;
+}
+
 /**
  * Generate a puzzle using AI.
  *
@@ -75,10 +80,9 @@ export function buildPuzzlePrompt(opts: { type: PuzzleType; topic?: string }): s
  * - Always returns a valid Puzzle object (with id) or throws on invalid AI response.
  * - returns Puzzle with answers[] always present (at least [answer])
  */
-export async function generatePuzzle(opts: {
-  type: PuzzleType;
-  topic?: string;
-}): Promise<PuzzleGenerationType & Pick<Puzzle, 'id'>> {
+export async function generatePuzzle(
+  opts: GeneratePuzzleOptions,
+): Promise<PuzzleGenerationType & Pick<Puzzle, 'id'>> {
   if (!client) {
     throw new Error('GROQ_API_KEY not configured');
   }
@@ -166,7 +170,10 @@ const VALIDATE_JSON_SCHEMA = jsonSchema<PuzzleValidationType>({
   },
 });
 
-export function buildValidationPrompt(puzzle: Puzzle, userAnswer: string): string {
+export function buildValidationPrompt(
+  puzzle: Pick<Puzzle, 'question' | 'answer' | 'normalized_answers'>,
+  userAnswer: string,
+): string {
   // Build concise prompt (strict JSON response)
   const answersList = Array.isArray(puzzle.normalized_answers)
     ? puzzle.normalized_answers.join(', ')
@@ -193,7 +200,7 @@ Return ONLY JSON. "correct" should be true only for acceptable answers or close 
  * - Uses low temperature and small maxOutputTokens to reduce cost and increase determinism.
  */
 export async function aiValidateAnswer(
-  puzzle: Puzzle,
+  puzzle: Pick<Puzzle, 'id' | 'question' | 'answer' | 'normalized_answers'>,
   userAnswer: string,
 ): Promise<PuzzleValidationType> {
   if (!client) {

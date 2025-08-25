@@ -34,11 +34,11 @@ beforeEach(() => {
 describe('validateAnswer (validation flow)', () => {
   it('returns local=true when user answer matches canonical or synonyms (no LLM call)', async () => {
     // Import after mocks are set up
-    const { validateAnswer } = await import('@/lib/ai');
+    const { validateAnswer } = await import('@/app/api/validate/route');
     const { SAMPLE_PUZZLE } = await import('@/utils/puzzles');
 
     // SAMPLE_PUZZLE.answer is 'echo' and normalized_answers contains variants.
-    const result = await validateAnswer(SAMPLE_PUZZLE, 'Echo'); // Different case
+    const result = await validateAnswer(SAMPLE_PUZZLE.id, 'Echo'); // Different case
     expect(result.correct).toBe(true);
     expect(result.method).toBe('local');
     // Local match must not trigger the LLM
@@ -51,13 +51,13 @@ describe('validateAnswer (validation flow)', () => {
       object: { correct: true, confidence: 0.82, explanation: 'Matches synonym' },
     });
 
-    const { validateAnswer } = await import('@/lib/ai');
+    const { validateAnswer } = await import('@/app/api/validate/route');
     const { SAMPLE_PUZZLE } = await import('@/utils/puzzles');
 
     // Use an answer that does not match SAMPLE_PUZZLE normalized_answers
     const userAnswer = 'something unrelated';
 
-    const result = await validateAnswer(SAMPLE_PUZZLE, userAnswer);
+    const result = await validateAnswer(SAMPLE_PUZZLE.id, userAnswer);
 
     // LLM must be invoked once
     expect(generateObjectMock).toHaveBeenCalled();
@@ -72,10 +72,10 @@ describe('validateAnswer (validation flow)', () => {
     // Make generateObject throw
     generateObjectMock.mockRejectedValue(new Error('LLM failure'));
 
-    const { validateAnswer } = await import('@/lib/ai');
+    const { validateAnswer } = await import('@/app/api/validate/route');
     const { SAMPLE_PUZZLE } = await import('@/utils/puzzles');
 
-    const res = await validateAnswer(SAMPLE_PUZZLE, 'no match');
+    const res = await validateAnswer(SAMPLE_PUZZLE.id, 'no match');
 
     expect(generateObjectMock).toHaveBeenCalled();
     expect(res.correct).toBe(false);

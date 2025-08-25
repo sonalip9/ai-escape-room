@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Button, Input, Spinner, Text, YStack } from 'tamagui';
 
 import type { PuzzleResponse } from '@/app/api/puzzle/route';
-import type { PostValidateResponse } from '@/app/api/validate/route';
+import type { PostValidateRequest, PostValidateResponse } from '@/app/api/validate/route';
 
 const MotionText = motion(Text);
 
@@ -37,10 +37,8 @@ export default function PuzzleCard({
 
     fetch('/api/validate', {
       method: 'POST',
-      body: JSON.stringify({ puzzle, answer: input }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      body: JSON.stringify({ puzzleId: puzzle.id, answer: input } as PostValidateRequest),
+      headers: { 'Content-Type': 'application/json' },
     })
       .then(async (res) => res.json() as Promise<PostValidateResponse>)
       .then((data) => {

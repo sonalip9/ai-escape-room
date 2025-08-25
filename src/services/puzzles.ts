@@ -1,7 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import type { Insert, PuzzleRow } from '@/types/database';
-import type { Puzzle } from '@/utils/puzzles';
 import { normalizeText } from '@/utils/text';
+
+export type PuzzleDB = Pick<
+  PuzzleRow,
+  'id' | 'question' | 'answer' | 'type' | 'normalized_answers'
+>;
 
 const doInsert = async (p: Omit<Insert<PuzzleRow>, 'source' | 'created_at'>): Promise<boolean> => {
   try {
@@ -90,9 +94,7 @@ export async function saveAIPuzzle(
  * Get a random puzzle from DB, optionally excluding ids.
  * Returns null if none available.
  */
-export async function getRandomPuzzleFromDB(
-  excludeIds: string[] = [],
-): Promise<Omit<Puzzle, 'answers'> | null> {
+export async function getRandomPuzzleFromDB(excludeIds: string[] = []): Promise<PuzzleDB | null> {
   if (!supabase) return null;
   try {
     let query = supabase.from('puzzles').select('id,question,answer,type,normalized_answers');
@@ -114,6 +116,26 @@ export async function getRandomPuzzleFromDB(
     return data[Math.floor(Math.random() * data.length)] ?? null;
   } catch (err) {
     console.warn('getRandomPuzzleFromDB failed', err);
+    return null;
+  }
+}
+
+export async function getPuzzleFromId(puzzleId: string): Promise<PuzzleDB | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('puzzles')
+      .select('id,question,answer,type,normalized_answers')
+      .eq('id', puzzleId)
+      .single();
+
+    if (error) {
+      console.warn('getPuzzleFromId error:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn('getPuzzleFromId failed', err);
     return null;
   }
 }

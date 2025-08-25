@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 
+import type { GeneratePuzzleOptions } from '@/lib/ai';
 import { generatePuzzle } from '@/lib/ai';
 import { getRandomPuzzleFromDB, saveAIPuzzle } from '@/services/puzzles';
-import type { PuzzleType } from '@/types/database';
-import type { Puzzle } from '@/utils/puzzles';
+import type { PuzzleRow, PuzzleType } from '@/types/database';
 import { fallbackPuzzles, getRandomPuzzleType, pickRandom } from '@/utils/puzzles';
 
 export interface PostPuzzleRequest {
@@ -12,18 +12,12 @@ export interface PostPuzzleRequest {
   exclude_ids?: string[];
 }
 
-export type PuzzleResponse = Omit<Puzzle, 'answers' | 'normalized_answers'>;
+export type PuzzleResponse = Pick<PuzzleRow, 'id' | 'type' | 'question'>;
 export interface PostPuzzleResponse {
   puzzles: PuzzleResponse[];
 }
 
-async function aiGenerated({
-  type,
-  topic,
-}: {
-  type: PuzzleType;
-  topic?: string;
-}): Promise<PuzzleResponse> {
+async function aiGenerated({ type, topic }: GeneratePuzzleOptions): Promise<PuzzleResponse> {
   // Try AI first (may throw on missing key or generation failure)
   const puzzle = await generatePuzzle({ type, topic });
 
@@ -32,14 +26,14 @@ async function aiGenerated({
     console.warn('Background saveAIPuzzle error', error);
   });
 
-  return puzzle;
+  return { id: puzzle.id, type: puzzle.type, question: puzzle.question };
 }
 
 async function nonAiGenerated(excludeIds: string[]): Promise<PuzzleResponse> {
   // Try DB fallback (service)
   const dbPuzzle = await getRandomPuzzleFromDB(excludeIds);
   if (dbPuzzle) {
-    return dbPuzzle;
+    return { id: dbPuzzle.id, type: dbPuzzle.type, question: dbPuzzle.question };
   }
 
   // Final fallback: local curated
@@ -47,7 +41,7 @@ async function nonAiGenerated(excludeIds: string[]): Promise<PuzzleResponse> {
     fallbackPuzzles.filter((fp) => !excludeIds.includes(fp.id)),
     1,
   );
-  return local;
+  return { id: local.id, type: local.type, question: local.question };
 }
 
 async function generatePuzzleAPI(

@@ -86,7 +86,10 @@ export function getRandomPuzzleType(): PuzzleType {
  * Quick synchronous local check that uses exact / normalized equality against known answers.
  * Returns true if a definitive local match is found.
  */
-export function localValidate(puzzle: Puzzle, userAnswer: string): boolean {
+export function localValidate(
+  puzzle: Pick<Puzzle, 'answer' | 'normalized_answers'>,
+  userAnswer: string,
+): boolean {
   if (!userAnswer) return false;
 
   // Quick exact normalized match with canonical answer

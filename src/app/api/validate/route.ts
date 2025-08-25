@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 
 import { aiValidateAnswer } from '@/lib/ai';
-import { localValidate, type Puzzle } from '@/utils/puzzles';
+import { getPuzzleFromId } from '@/services/puzzles';
+import { fallbackPuzzles, localValidate } from '@/utils/puzzles';
 
 export interface PostValidateRequest {
-  puzzle: Puzzle;
+  puzzleId: string;
   answer: string;
 }
 
@@ -23,9 +24,16 @@ export interface ValidationResult {
  * Top-level async validation that first does local checks, then falls back to AI if needed.
  */
 export async function validateAnswer(
-  puzzle: Puzzle,
+  puzzleId: string,
   userAnswer: string,
 ): Promise<ValidationResult> {
+  const puzzle =
+    (await getPuzzleFromId(puzzleId)) ?? fallbackPuzzles.find((p) => p.id === puzzleId) ?? null;
+
+  if (puzzle === null) {
+    throw new Error('Puzzle not found');
+  }
+
   // Local quick check
   if (localValidate(puzzle, userAnswer)) {
     return { correct: true, method: 'local', confidence: 1 };
@@ -50,7 +58,7 @@ export async function validateAnswer(
 }
 
 export async function POST(req: Request): Promise<NextResponse<PostValidateResponse>> {
-  const { puzzle, answer } = (await req.json()) as PostValidateRequest;
-  const { correct } = await validateAnswer(puzzle, answer);
+  const { puzzleId, answer } = (await req.json()) as PostValidateRequest;
+  const { correct } = await validateAnswer(puzzleId, answer);
   return NextResponse.json({ correct });
 }
