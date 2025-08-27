@@ -127,8 +127,6 @@ export async function generatePuzzle(
       throw new Error(`AI returned error: ${JSON.stringify(error)}`);
     }
 
-    console.debug('Puzzle generated:', JSON.stringify(result));
-
     const obj = result?.object;
     if (!obj || typeof obj.question !== 'string' || typeof obj.answer !== 'string') {
       throw new Error('AI returned invalid puzzle object');

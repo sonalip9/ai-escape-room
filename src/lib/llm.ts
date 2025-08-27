@@ -17,6 +17,20 @@ interface CallOpts<T extends Record<string, unknown>> {
   metricType: MetricType;
 }
 
+function logAIResponse(response: GenerateObjectResult<unknown>): void {
+  if (process.env.NODE_ENV === 'production') return;
+
+  console.debug('AI Response:');
+  console.debug('request:', JSON.stringify(response.request, null, 2));
+  console.debug('warnings:', JSON.stringify(response.warnings, null, 2));
+  const { id, modelId, timestamp, body, headers } = response.response;
+  console.debug('response id:', id);
+  console.debug('modelId:', modelId);
+  console.debug('start timestamp:', timestamp.toISOString());
+  console.debug('body:', JSON.stringify(body, null, 2));
+  console.debug('headers:', JSON.stringify(headers, null, 2));
+}
+
 export async function callLLM<T extends Record<string, unknown>>(
   opts: CallOpts<T>,
 ): Promise<{
@@ -32,6 +46,7 @@ export async function callLLM<T extends Record<string, unknown>>(
       temperature: opts.generateObjectOptions.temperature ?? 0.0,
       maxOutputTokens: opts.generateObjectOptions.maxOutputTokens ?? 80,
     });
+    logAIResponse(result);
 
     const durationMs = Date.now() - start;
 
