@@ -10,10 +10,7 @@ import type { Puzzle, PuzzleType } from '@/utils/puzzles';
 
 const GROQ_KEY = process.env.GROQ_API_KEY;
 
-if (!GROQ_KEY) {
-  // Keep running with mock behavior for local demo without a key
-  console.warn('GROQ_API_KEY not set — using mock AI responses');
-}
+if (!GROQ_KEY) console.warn('GROQ_API_KEY not set — using mock AI responses');
 
 const client = GROQ_KEY ? createGroq({ apiKey: GROQ_KEY }) : undefined;
 
@@ -23,7 +20,7 @@ const client = GROQ_KEY ? createGroq({ apiKey: GROQ_KEY }) : undefined;
 const PUZZLE_SYS_MESSAGE = `You are a puzzle generator. You must return JSON only (no explanation, no commentary).
 The JSON must have keys: "question" (string), "answer" (string), "type" (one of "riddle","cipher","math").
 Optionally include "answers" which is an array of alternative acceptable answers (synonyms).
-If "type" is "math" keep the math question simple (single-step arithmetic). If "type" is "cipher", include the encoded text only (e.g. ROT13). Output valid JSON only.`;
+If "type" is "math" keep the math question simple (single-step arithmetic). If "type" is "cipher", include the encoding logic used. Output valid JSON only.`;
 
 // Schema enforces presence + type enum, and optionally answers array
 type PuzzleGenerationType = Pick<Puzzle, 'question' | 'answer' | 'type' | 'answers'>;
@@ -51,7 +48,15 @@ const PUZZLE_JSON_SCHEMA = jsonSchema<PuzzleGenerationType>({
   },
 });
 
-export function buildPuzzlePrompt(opts: { type: PuzzleType; topic?: string }): string {
+/**
+ * The options to be passed to the ai function for generating a puzzle.
+ */
+export interface GeneratePuzzleOptions {
+  type: PuzzleType;
+  topic?: string;
+}
+
+export function buildPuzzlePrompt(opts: GeneratePuzzleOptions): string {
   const { type, topic } = opts;
   const isTopicGiven = topic !== undefined && topic.trim() !== '';
   if (!puzzleTypes.includes(type)) {
@@ -60,12 +65,28 @@ export function buildPuzzlePrompt(opts: { type: PuzzleType; topic?: string }): s
 
   return `Create a short and fun ${type} puzzle suitable for an escape room.${
     isTopicGiven ? ` Topic: ${topic}.` : ''
-  } Return JSON only. Optionally include "answers" array of synonyms (alternative acceptable answers).`;
+  } Return JSON only. Optionally include "answers" array of acceptable answers, where applicable.`;
 }
 
-export interface GeneratePuzzleOptions {
-  type: PuzzleType;
-  topic?: string;
+function validateGenerationOutput(output: unknown): asserts output is PuzzleGenerationType {
+  if (typeof output !== 'object' || output === null) {
+    throw new Error('Invalid output: not an object');
+  }
+
+  if (!('question' in output) || typeof output.question !== 'string') {
+    throw new Error('Invalid output: question is missing');
+  }
+
+  if (!('answer' in output) || typeof output.answer !== 'string') {
+    throw new Error('Invalid output: answer is not a string');
+  }
+  if (
+    !('type' in output) ||
+    typeof output.type !== 'string' ||
+    !puzzleTypes.includes(output.type.toLowerCase() as PuzzleType)
+  ) {
+    throw new Error(`Invalid output: type is not one of ${puzzleTypes.join(', ')}`);
+  }
 }
 
 /**
@@ -91,67 +112,51 @@ export async function generatePuzzle(
   const prompt = buildPuzzlePrompt(opts);
   const puzzleId = crypto.randomUUID();
 
-  try {
-    const { result, durationMs, error, tokensEstimate } = await callLLM({
-      metricType: 'generation',
-      generateObjectOptions: {
-        model: client('moonshotai/kimi-k2-instruct'),
-        prompt,
-        schema: PUZZLE_JSON_SCHEMA,
-        maxOutputTokens: 250,
-        temperature: 0.35,
-        system: PUZZLE_SYS_MESSAGE,
-      },
-    });
+  const { result, durationMs, error, tokensEstimate } = await callLLM({
+    metricType: 'generation',
+    generateObjectOptions: {
+      model: client('moonshotai/kimi-k2-instruct'),
+      prompt,
+      schema: PUZZLE_JSON_SCHEMA,
+      maxOutputTokens: 250,
+      temperature: 0.35,
+      system: PUZZLE_SYS_MESSAGE,
+    },
+  });
 
-    const isError = error !== undefined && error !== null;
+  const isError = error !== undefined && error !== null;
 
-    // Non-blocking audit record (don't fail validation if audit fails)
-    recordAudit({
-      puzzle_id: puzzleId,
-      action: 'generation',
-      model: 'moonshotai/kimi-k2-instruct',
-      prompt: prompt.slice(0, 4000), // Avoid extremely large fields
-      response: result?.object ?? (isError ? { error: JSON.stringify(error) } : null),
-      meta: { durationMs, tokensEstimate, success: !isError },
-      created_by: 'system',
-    }).catch((e: unknown) => {
-      console.warn('audit record failed', e);
-    });
+  // Non-blocking audit record (don't fail validation if audit fails)
+  recordAudit({
+    puzzle_id: puzzleId,
+    action: 'generation',
+    model: 'moonshotai/kimi-k2-instruct',
+    prompt: prompt.slice(0, 4000), // Avoid extremely large fields
+    response: result?.object ?? (isError ? { error: JSON.stringify(error) } : null),
+    meta: { durationMs, tokensEstimate, success: !isError },
+    created_by: 'system',
+  }).catch((e: unknown) => {
+    console.warn('audit record failed', e);
+  });
 
-    // Record metrics (wrapper already incremented some; duplicate is ok)
-    recordMetric({ usedAI: true, tokensEstimate, durationMs, type: 'generation' });
+  // Record metrics (wrapper already incremented some; duplicate is ok)
+  recordMetric({ usedAI: true, tokensEstimate, durationMs, type: 'generation' });
 
-    if (isError) {
-      if (error instanceof Error) throw error;
-      throw new Error(`AI returned error: ${JSON.stringify(error)}`);
-    }
-
-    const obj = result?.object;
-    if (!obj || typeof obj.question !== 'string' || typeof obj.answer !== 'string') {
-      throw new Error('AI returned invalid puzzle object');
-    }
-    const typeLower = obj.type.toLowerCase() as PuzzleType;
-    if (!puzzleTypes.includes(typeLower)) {
-      throw new Error(`AI returned invalid type: ${obj.type}`);
-    }
-
-    // Ensure answers array exists and contains at least the primary answer
-    const answers: string[] =
-      Array.isArray(obj.answers) && obj.answers.length > 0
-        ? obj.answers.map((s: unknown) => String(s).trim()).filter(Boolean)
-        : [obj.answer.trim()];
-
-    return {
-      id: puzzleId,
-      type: typeLower,
-      question: obj.question.trim(),
-      answer: obj.answer.trim(),
-      answers,
-    };
-  } catch (err) {
-    throw new Error(`generatePuzzle failed: ${err instanceof Error ? err.message : String(err)}`);
+  if (isError) {
+    if (error instanceof Error) throw error;
+    throw new Error(`AI returned error: ${JSON.stringify(error)}`);
   }
+
+  const obj = result?.object;
+  validateGenerationOutput(obj);
+
+  // Ensure answers array exists and contains at least the primary answer
+  const answers: string[] =
+    Array.isArray(obj.answers) && obj.answers.length > 0
+      ? obj.answers.map((s: unknown) => String(s).trim()).filter(Boolean)
+      : [obj.answer.trim()];
+
+  return { id: puzzleId, ...obj, answers };
 }
 
 // --- Puzzle Validation ---
@@ -168,25 +173,20 @@ const VALIDATE_JSON_SCHEMA = jsonSchema<PuzzleValidationType>({
   },
 });
 
+const VALIDATION_SYS_MESSAGE = `You are a strict validator for an escape-room puzzle. You must return JSON only (no commentary).
+The JSON must have keys: "correct" (boolean), "confidence" (number), "explanation" (string).
+The key "correct" should be true only if the user's answer is correct. Keep "confidence" indicating the certainity of your evaluation (between 0 and 1). If incorrect, provide a one-sentence "explanation".
+Output valid JSON only.`;
+
 export function buildValidationPrompt(
   puzzle: Pick<Puzzle, 'question' | 'answer' | 'normalized_answers'>,
   userAnswer: string,
 ): string {
-  // Build concise prompt (strict JSON response)
-  const answersList = Array.isArray(puzzle.normalized_answers)
-    ? puzzle.normalized_answers.join(', ')
-    : puzzle.answer;
-
-  return `
-You are a strict validator for an escape-room puzzle. Reply with JSON only, matching schema: { "correct": boolean, "confidence"?: number, "explanation"?: string }.
-
+  return `Validate whether the user's answer is correct solution of the puzzle.
 Puzzle: ${puzzle.question}
-Canonical: ${puzzle.answer}
-Other accepted (normalized): ${answersList}
 User answer: ${userAnswer}
 
-Return ONLY JSON. "correct" should be true only for acceptable answers or close synonyms. Keep "confidence" between 0 and 1. If incorrect, provide a one-sentence "explanation".
-`.trim();
+Return ONLY JSON.`.trim();
 }
 
 /**
@@ -219,7 +219,7 @@ export async function aiValidateAnswer(
       schema: VALIDATE_JSON_SCHEMA,
       temperature: 0.0,
       maxOutputTokens: 80,
-      system: 'You are a terse validation assistant. Output JSON only.',
+      system: VALIDATION_SYS_MESSAGE,
     },
   });
 
