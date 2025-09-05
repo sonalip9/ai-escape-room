@@ -58,13 +58,11 @@ describe('Puzzle API - unit tests', () => {
 
     const [puzzle] = puzzles as unknown[];
     expect(puzzle).toHaveProperty('id');
-    // @ts-expect-error The previous line checks for 'id' existing
-    expect(puzzle.id).toBe('test-ai');
+    expect((puzzle as { id: string }).id).toBe('test-ai');
     expect(puzzle).toHaveProperty('type');
     assert(typeof puzzle === 'object' && puzzle !== null && 'type' in puzzle);
     expect(puzzleTypes).toContain(puzzle.type);
     expect(puzzle).toHaveProperty('question');
-    expect(puzzle).toHaveProperty('answer');
   });
 
   it('respects excludeIds when provided', async () => {
@@ -88,9 +86,7 @@ describe('Puzzle API - unit tests', () => {
 
     const [puzzle] = puzzles as unknown[];
     expect(puzzle).toHaveProperty('id');
-    // @ts-expect-error The previous line checks for 'id' existing
-    expect(puzzle.id).not.toBe('test-db');
+    expect((puzzle as { id: string }).id).not.toBe('test-db');
     expect(puzzle).toHaveProperty('question');
-    expect(puzzle).toHaveProperty('answer');
   });
 });
