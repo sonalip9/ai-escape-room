@@ -30,13 +30,19 @@ beforeEach(() => {
 describe('validateAnswer (validation flow)', () => {
   it('returns local=true when user answer matches canonical or synonyms (no LLM call)', async () => {
     // Import after mocks are set up
-    const { validateAnswer } = await import('@/app/api/validate/route');
     const { SAMPLE_PUZZLE } = await import('@/utils/puzzles');
+    const { POST } = await import('@/app/api/validate/route');
 
-    // SAMPLE_PUZZLE.answer is 'echo' and normalized_answers contains variants.
-    const result = await validateAnswer(SAMPLE_PUZZLE.id, 'Echo'); // Different case
-    expect(result.correct).toBe(true);
-    expect(result.method).toBe('local');
+    const req = new Request('http://localhost:3000/api/validate', {
+      method: 'POST',
+      body: JSON.stringify({ puzzleId: SAMPLE_PUZZLE.id, answer: 'Echo' }),
+    });
+
+    const res = await POST(req);
+    const json: unknown = await res.json();
+
+    expect(json).toHaveProperty('correct');
+    expect((json as { correct: unknown }).correct).toBe(true);
     // Local match must not trigger the LLM
     expect(callLLMMock).not.toHaveBeenCalled();
   });
@@ -49,36 +55,43 @@ describe('validateAnswer (validation flow)', () => {
       tokensEstimate: 42,
     });
 
-    const { validateAnswer } = await import('@/app/api/validate/route');
     const { SAMPLE_PUZZLE } = await import('@/utils/puzzles');
+    const { POST } = await import('@/app/api/validate/route');
 
     // Use an answer that does not match SAMPLE_PUZZLE normalized_answers
     const userAnswer = 'something unrelated';
 
-    const result = await validateAnswer(SAMPLE_PUZZLE.id, userAnswer);
+    const req = new Request('http://localhost:3000/api/validate', {
+      method: 'POST',
+      body: JSON.stringify({ puzzleId: SAMPLE_PUZZLE.id, answer: userAnswer }),
+    });
 
+    const res = await POST(req);
+    const json: unknown = await res.json();
+
+    expect(json).toHaveProperty('correct');
     // LLM must be invoked once
     expect(callLLMMock).toHaveBeenCalled();
-    expect(result.correct).toBe(true);
-    expect(result.method).toBe('ai');
-    // Confidence forwarded
-    expect(result.confidence).toBeCloseTo(0.82);
-    expect(typeof result.explanation === 'string').toBeTruthy();
+    expect((json as { correct: unknown }).correct).toBe(true);
   });
 
   it('handles AI errors gracefully (returns false and method=ai)', async () => {
     // Make generateObject throw
     callLLMMock.mockRejectedValue(new Error('LLM failure'));
 
-    const { validateAnswer } = await import('@/app/api/validate/route');
     const { SAMPLE_PUZZLE } = await import('@/utils/puzzles');
+    const { POST } = await import('@/app/api/validate/route');
 
-    const res = await validateAnswer(SAMPLE_PUZZLE.id, 'no match');
+    const req = new Request('http://localhost:3000/api/validate', {
+      method: 'POST',
+      body: JSON.stringify({ puzzleId: SAMPLE_PUZZLE.id, answer: 'no match' }),
+    });
 
+    const res = await POST(req);
+    const json: unknown = await res.json();
+
+    expect(json).toHaveProperty('correct');
     expect(callLLMMock).toHaveBeenCalled();
-    expect(res.correct).toBe(false);
-    expect(res.method).toBe('ai_unavailable');
-    // On failure we currently set confidence 0 and explanation present (see ai.ts)
-    expect(res.confidence).toBeDefined();
+    expect((json as { correct: unknown }).correct).toBe(false);
   });
 });

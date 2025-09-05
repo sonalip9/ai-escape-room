@@ -23,10 +23,7 @@ export interface ValidationResult {
 /**
  * Top-level async validation that first does local checks, then falls back to AI if needed.
  */
-export async function validateAnswer(
-  puzzleId: string,
-  userAnswer: string,
-): Promise<ValidationResult> {
+async function validateAnswer(puzzleId: string, userAnswer: string): Promise<ValidationResult> {
   const puzzle =
     (await getPuzzleFromId(puzzleId)) ?? fallbackPuzzles.find((p) => p.id === puzzleId) ?? null;
 
