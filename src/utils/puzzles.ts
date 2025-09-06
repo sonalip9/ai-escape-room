@@ -33,8 +33,8 @@ export const fallbackPuzzles: Puzzle[] = [
     type: 'math',
     question: 'What is 7 * 6?',
     answer: '42',
-    answers: ['42', 'fourty two'],
-    normalized_answers: ['42', 'fourty two'],
+    answers: ['42', 'forty two'],
+    normalized_answers: ['42', 'forty two'],
   },
   {
     id: 'p4',

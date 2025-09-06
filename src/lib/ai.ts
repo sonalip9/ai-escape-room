@@ -175,7 +175,7 @@ const VALIDATE_JSON_SCHEMA = jsonSchema<PuzzleValidationType>({
 
 const VALIDATION_SYS_MESSAGE = `You are a strict validator for an escape-room puzzle. You must return JSON only (no commentary).
 The JSON must have keys: "correct" (boolean), "confidence" (number), "explanation" (string).
-The key "correct" should be true only if the user's answer is correct. Keep "confidence" indicating the certainity of your evaluation (between 0 and 1). If incorrect, provide a one-sentence "explanation".
+The key "correct" should be true only if the user's answer is correct. Keep "confidence" indicating the certainty of your evaluation (between 0 and 1). If incorrect, provide a one-sentence "explanation".
 Output valid JSON only.`;
 
 export function buildValidationPrompt(
