@@ -5,7 +5,7 @@ import type { JSX } from 'react';
 import { useEffect, useState } from 'react';
 import { Button, Text, YStack } from 'tamagui';
 
-import { supabase } from '@/lib/supabase';
+import { loadLeaderboard } from '@/services/leaderboard';
 import type { LeaderboardRow } from '@/types/database';
 
 export default function LeaderboardPage(): JSX.Element {
@@ -15,31 +15,16 @@ export default function LeaderboardPage(): JSX.Element {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-    async function load(): Promise<void> {
-      try {
-        if (supabase) {
-          const { data } = await supabase
-            .from('leaderboard')
-            .select('*')
-            .order('time_seconds', { ascending: true })
-            .limit(10);
-          if (mounted) setRows(data ?? []);
-        } else {
-          setRows([]);
-        }
-      } catch (e) {
-        setRows([]);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-    load().catch((e: unknown) => {
-      console.error('Error loading leaderboard:', e);
-    });
-    return (): void => {
-      mounted = false;
-    };
+    loadLeaderboard()
+      .then((data) => {
+        setRows(data.data);
+      })
+      .catch((e: unknown) => {
+        console.error('Error loading leaderboard:', e);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   return (

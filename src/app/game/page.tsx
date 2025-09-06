@@ -8,7 +8,7 @@ import { Button, Input, Spinner, Text, XStack, YStack } from 'tamagui';
 import type { PostPuzzleRequest, PostPuzzleResponse, PuzzleResponse } from '@/app/api/puzzle/route';
 import PuzzleCard from '@/components/PuzzleCard';
 import Timer from '@/components/Timer';
-import { supabase } from '@/lib/supabase';
+import { addLeaderboardEntry } from '@/services/leaderboard';
 
 const NUMBER_OF_PUZZLE_PER_GAME = 3;
 
@@ -73,13 +73,10 @@ export default function GamePage(): JSX.Element {
   const submitScore = useCallback(
     async function (): Promise<void> {
       if (timeSeconds === null) return;
+
       // Try to insert into supabase if available
       try {
-        if (supabase) {
-          await supabase
-            .from('leaderboard')
-            .insert([{ name: name || 'Anonymous', time_seconds: timeSeconds }]);
-        }
+        await addLeaderboardEntry(name, timeSeconds);
       } catch (e) {
         console.warn('Supabase insert failed', e);
       }
