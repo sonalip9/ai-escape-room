@@ -98,6 +98,12 @@ export default function GamePage(): JSX.Element {
           }
         }
 
+        const data = (await res.json()) as PostLeaderboardResponse;
+        if (!data.success) {
+          setSubmissionError(data.error ?? 'Failed to submit score. Please try again.');
+          return;
+        }
+
         router.push('/leaderboard');
       } catch (e) {
         console.warn('Leaderboard API insert failed', e);
