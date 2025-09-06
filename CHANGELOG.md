@@ -1,3 +1,9 @@
+# [1.2.0](https://github.com/sonalip9/ai-escape-room/compare/v1.1.1...v1.2.0) (2025-09-06)
+
+### Features
+
+- add puzzle generation and validation withAI integration features ([#5](https://github.com/sonalip9/ai-escape-room/issues/5)) ([4b07b71](https://github.com/sonalip9/ai-escape-room/commit/4b07b71001f32f699bfa09c07159b29d8489d358))
+
 ## [1.1.1](https://github.com/sonalip9/ai-escape-room/compare/v1.1.0...v1.1.1) (2025-08-22)
 
 ### Bug Fixes
