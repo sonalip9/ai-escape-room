@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { sanitizeName, validateSubmission } from '@/lib/anti-cheat';
 import { recordMetric } from '@/lib/metrics';
-import { checkRateLimit } from '@/lib/rate-limiter';
+import { withRateLimit } from '@/lib/rate-limit-middleware';
 import { DB_RETRY_CONFIG, withRetry } from '@/lib/retry';
 import { addLeaderboardEntry, loadLeaderboard } from '@/services/leaderboard';
 import type { LeaderboardRow } from '@/types/database';
@@ -27,7 +27,7 @@ export interface GetLeaderboardResponse {
   data: LeaderboardRow[];
 }
 
-export async function GET(req: Request): Promise<NextResponse<GetLeaderboardResponse>> {
+async function getLeaderboardHandler(req: Request): Promise<NextResponse<GetLeaderboardResponse>> {
   const url = new URL(req.url);
   const query = Object.fromEntries(url.searchParams) as GetLeaderboardQuery | undefined | null;
 
@@ -41,30 +41,12 @@ export async function GET(req: Request): Promise<NextResponse<GetLeaderboardResp
   return NextResponse.json(result);
 }
 
-export async function POST(req: Request): Promise<NextResponse<PostLeaderboardResponse>> {
+export const GET = withRateLimit(getLeaderboardHandler);
+
+async function postLeaderboardHandler(req: Request): Promise<NextResponse<PostLeaderboardResponse>> {
   const startTime = Date.now();
 
   try {
-    // Get client IP for rate limiting
-    const clientIP =
-      req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
-
-    // Check rate limit
-    const rateLimitResult = checkRateLimit(clientIP);
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { success: false, error: 'Rate limit exceeded. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': '3',
-            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
-          },
-        },
-      );
-    }
-
     const { name, time_seconds } = (await req.json()) as PostLeaderboardRequest;
 
     // Basic validation
@@ -111,3 +93,5 @@ export async function POST(req: Request): Promise<NextResponse<PostLeaderboardRe
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export const POST = withRateLimit(postLeaderboardHandler);
