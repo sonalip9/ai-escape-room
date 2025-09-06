@@ -30,6 +30,7 @@ export default function LeaderboardPage(): JSX.Element {
 
       setLoading(true);
       try {
+        // Todo: implement pagination if needed, give option to user to choose limit
         const res = await fetch('/api/leaderboard?limit=50'); // Increased limit for better sorting
         const data = (await res.json()) as GetLeaderboardResponse;
         setRows(data.data);
@@ -41,7 +42,9 @@ export default function LeaderboardPage(): JSX.Element {
         setLoading(false);
       }
     },
-    [CACHE_DURATION_MS, lastFetch, rows],
+    // The dependencies avoided are constants
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lastFetch, rows],
   );
 
   useEffect(() => {
