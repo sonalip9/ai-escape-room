@@ -89,7 +89,9 @@ export default function LeaderboardPage(): JSX.Element {
 
       {/* Sorting controls */}
       <XStack gap="$2" flexWrap="wrap">
-        <Text fontSize="$4">Sort by:</Text>
+        <Text fontSize="$4" display="flex" ai="center">
+          Sort by:
+        </Text>
         <Button
           size="$3"
           variant={sortOrder === 'time_asc' ? 'outlined' : undefined}
