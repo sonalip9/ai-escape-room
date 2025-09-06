@@ -22,7 +22,7 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
 /**
  * Sleep for a given number of milliseconds
  */
-function sleep(ms: number): Promise<void> {
+async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -51,15 +51,18 @@ export async function withRetry<T>(
       return await operation();
     } catch (error) {
       lastError = error;
-      
+
       // Don't retry on the last attempt
       if (attempt === config.maxAttempts) {
         break;
       }
 
       const delay = calculateDelay(attempt, config);
-      console.warn(`Operation failed (attempt ${attempt}/${config.maxAttempts}), retrying in ${delay}ms:`, error);
-      
+      console.warn(
+        `Operation failed (attempt ${attempt.toString()}/${config.maxAttempts.toString()}), retrying in ${delay.toString()}ms:`,
+        error,
+      );
+
       await sleep(delay);
     }
   }

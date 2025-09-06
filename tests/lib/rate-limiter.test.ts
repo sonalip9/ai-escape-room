@@ -19,7 +19,7 @@ describe('Rate limiter', () => {
 
     it('tracks multiple requests from same IP', () => {
       const ip = 'test-ip-2';
-      
+
       // First request
       const result1 = checkRateLimit(ip);
       expect(result1.allowed).toBe(true);
@@ -46,7 +46,7 @@ describe('Rate limiter', () => {
       for (let i = 0; i < RATE_LIMIT_CONFIG.maxRequests; i++) {
         checkRateLimit('ip1');
       }
-      
+
       // First IP should be blocked
       const blockedResult = checkRateLimit('ip1');
       expect(blockedResult.allowed).toBe(false);
@@ -58,19 +58,19 @@ describe('Rate limiter', () => {
 
     it('resets after time window expires', () => {
       const ip = 'test-ip-reset';
-      
+
       // Use up all requests
       for (let i = 0; i < RATE_LIMIT_CONFIG.maxRequests; i++) {
         checkRateLimit(ip);
       }
-      
+
       // Should be blocked
       const blockedResult = checkRateLimit(ip);
       expect(blockedResult.allowed).toBe(false);
 
       // Fast forward time past the window
       vi.setSystemTime(new Date(Date.now() + RATE_LIMIT_CONFIG.windowMs + 1000));
-      
+
       // Should be allowed again
       const allowedResult = checkRateLimit(ip);
       expect(allowedResult.allowed).toBe(true);
@@ -81,16 +81,16 @@ describe('Rate limiter', () => {
   describe('cleanupExpiredEntries', () => {
     it('removes expired entries', () => {
       const ip = 'cleanup-test';
-      
+
       // Make a request
       checkRateLimit(ip);
-      
+
       // Fast forward time
       vi.setSystemTime(new Date(Date.now() + RATE_LIMIT_CONFIG.windowMs + 1000));
-      
+
       // Clean up
       cleanupExpiredEntries();
-      
+
       // Should be like a fresh request
       const result = checkRateLimit(ip);
       expect(result.allowed).toBe(true);

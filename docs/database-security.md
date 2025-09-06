@@ -7,6 +7,7 @@ To complete the leaderboard security implementation, consider adding Supabase Ro
 ### Recommended RLS Policies for Leaderboard Table
 
 1. **Read Policy**: Allow all users to read leaderboard entries
+
 ```sql
 CREATE POLICY "Enable read access for all users" ON "public"."leaderboard"
 AS PERMISSIVE FOR SELECT
@@ -15,6 +16,7 @@ USING (true);
 ```
 
 2. **Insert Policy**: Restrict inserts to authenticated sessions or API-only
+
 ```sql
 -- Option 1: Require authentication
 CREATE POLICY "Enable insert for authenticated users only" ON "public"."leaderboard"
@@ -28,6 +30,7 @@ WITH CHECK (true);
 ```
 
 3. **Prevent Updates and Deletes**: Leaderboard entries should be immutable
+
 ```sql
 CREATE POLICY "Prevent updates" ON "public"."leaderboard"
 AS RESTRICTIVE FOR UPDATE
@@ -65,8 +68,8 @@ ALTER TABLE "public"."leaderboard" ENABLE ROW LEVEL SECURITY;
 -- (policies listed above would go here)
 
 -- Add database constraints
-ALTER TABLE "public"."leaderboard" 
-  ADD CONSTRAINT leaderboard_time_check 
+ALTER TABLE "public"."leaderboard"
+  ADD CONSTRAINT leaderboard_time_check
   CHECK (time_seconds >= 5 AND time_seconds <= 1800);
 
 ALTER TABLE "public"."leaderboard"
@@ -77,6 +80,7 @@ ALTER TABLE "public"."leaderboard"
 ### Testing RLS Policies
 
 After implementing RLS policies, test them by:
+
 1. Attempting direct inserts via Supabase client
 2. Verifying API endpoints still work correctly
 3. Testing with different authentication states

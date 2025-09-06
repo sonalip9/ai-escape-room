@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateSubmission, sanitizeName, ANTI_CHEAT_CONFIG } from '@/lib/anti-cheat';
+import { ANTI_CHEAT_CONFIG, sanitizeName, validateSubmission } from '@/lib/anti-cheat';
 
 describe('Anti-cheat validation', () => {
   describe('validateSubmission', () => {
@@ -22,7 +22,7 @@ describe('Anti-cheat validation', () => {
     });
 
     it('rejects null/undefined names', () => {
-      const result = validateSubmission(null as any, 30);
+      const result = validateSubmission('', 30);
       expect(result.valid).toBe(false);
       expect(result.reason).toBe('Invalid name format');
     });

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 
-import { validateSubmission, sanitizeName } from '@/lib/anti-cheat';
+import { sanitizeName, validateSubmission } from '@/lib/anti-cheat';
 import { recordMetric } from '@/lib/metrics';
 import { checkRateLimit } from '@/lib/rate-limiter';
-import { withRetry, DB_RETRY_CONFIG } from '@/lib/retry';
+import { DB_RETRY_CONFIG, withRetry } from '@/lib/retry';
 import { addLeaderboardEntry, loadLeaderboard } from '@/services/leaderboard';
 import type { LeaderboardRow } from '@/types/database';
 
@@ -43,23 +43,24 @@ export async function GET(req: Request): Promise<NextResponse<GetLeaderboardResp
 
 export async function POST(req: Request): Promise<NextResponse<PostLeaderboardResponse>> {
   const startTime = Date.now();
-  
+
   try {
     // Get client IP for rate limiting
-    const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-    
+    const clientIP =
+      req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+
     // Check rate limit
     const rateLimitResult = checkRateLimit(clientIP);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { success: false, error: 'Rate limit exceeded. Please try again later.' },
-        { 
+        {
           status: 429,
           headers: {
             'X-RateLimit-Limit': '3',
             'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
             'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
-          }
+          },
         },
       );
     }
@@ -78,7 +79,7 @@ export async function POST(req: Request): Promise<NextResponse<PostLeaderboardRe
     const validation = validateSubmission(name, time_seconds);
     if (!validation.valid) {
       return NextResponse.json(
-        { success: false, error: `Submission rejected: ${validation.reason}` },
+        { success: false, error: `Submission rejected: ${validation.reason ?? ''}` },
         { status: 400 },
       );
     }
@@ -88,8 +89,8 @@ export async function POST(req: Request): Promise<NextResponse<PostLeaderboardRe
 
     // Attempt to add entry with retry logic
     const ok = await withRetry(
-      () => addLeaderboardEntry(sanitizedName, time_seconds),
-      DB_RETRY_CONFIG
+      async () => addLeaderboardEntry(sanitizedName, time_seconds),
+      DB_RETRY_CONFIG,
     );
 
     // Record metrics
@@ -107,9 +108,6 @@ export async function POST(req: Request): Promise<NextResponse<PostLeaderboardRe
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Leaderboard POST error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -5,7 +5,7 @@ import type { JSX } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Input, Spinner, Text, XStack, YStack } from 'tamagui';
 
-import type { PostLeaderboardRequest } from '@/app/api/leaderboard/route';
+import type { PostLeaderboardRequest, PostLeaderboardResponse } from '@/app/api/leaderboard/route';
 import type { PostPuzzleRequest, PostPuzzleResponse, PuzzleResponse } from '@/app/api/puzzle/route';
 import PuzzleCard from '@/components/PuzzleCard';
 import Timer from '@/components/Timer';
@@ -83,9 +83,9 @@ export default function GamePage(): JSX.Element {
         });
 
         if (!res.ok) {
-          const errorData = await res.json();
-          const errorMessage = errorData.error || 'Failed to submit score';
-          
+          const errorData = (await res.json()) as PostLeaderboardResponse;
+          const errorMessage = errorData.error ?? 'Failed to submit score';
+
           if (res.status === 429) {
             setSubmissionError('Rate limit exceeded. Please try again later.');
             return;
@@ -113,15 +113,15 @@ export default function GamePage(): JSX.Element {
       <YStack p="$4" gap="$4" ai="center" jc="center" h="100vh">
         <Text fontSize="$6">🎉 You escaped!</Text>
         <Text>Your time: {timeSeconds} seconds</Text>
-        
-        {submissionError && (
+
+        {submissionError !== null && (
           <YStack p="$3" br={8} bg="rgba(255, 0, 0, 0.1)">
             <Text color="red" fontSize="$3">
               {submissionError}
             </Text>
           </YStack>
         )}
-        
+
         <Input
           br="$6"
           placeholder="Your name (for leaderboard)"

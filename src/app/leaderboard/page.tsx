@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import type { JSX } from 'react';
-import { useEffect, useState, useMemo } from 'react';
-import { Button, Text, YStack, XStack, Spinner } from 'tamagui';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Spinner, Text, XStack, YStack } from 'tamagui';
 
 import type { GetLeaderboardResponse } from '@/app/api/leaderboard/route';
 import type { LeaderboardRow } from '@/types/database';
@@ -21,31 +21,34 @@ export default function LeaderboardPage(): JSX.Element {
   // Cache for 30 seconds
   const CACHE_DURATION_MS = 30 * 1000;
 
-  const fetchLeaderboard = async (force = false): Promise<void> => {
-    const now = Date.now();
-    if (!force && now - lastFetch < CACHE_DURATION_MS && rows !== null) {
-      return; // Use cached data
-    }
+  const fetchLeaderboard = useCallback(
+    async (force = false): Promise<void> => {
+      const now = Date.now();
+      if (!force && now - lastFetch < CACHE_DURATION_MS && rows !== null) {
+        return; // Use cached data
+      }
 
-    setLoading(true);
-    try {
-      const res = await fetch('/api/leaderboard?limit=50'); // Increased limit for better sorting
-      const data = (await res.json()) as GetLeaderboardResponse;
-      setRows(data.data);
-      setLastFetch(now);
-    } catch (e: unknown) {
-      console.error('Error loading leaderboard:', e);
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      try {
+        const res = await fetch('/api/leaderboard?limit=50'); // Increased limit for better sorting
+        const data = (await res.json()) as GetLeaderboardResponse;
+        setRows(data.data);
+        setLastFetch(now);
+      } catch (e: unknown) {
+        console.error('Error loading leaderboard:', e);
+        setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [CACHE_DURATION_MS, lastFetch, rows],
+  );
 
   useEffect(() => {
     fetchLeaderboard().catch((e: unknown) => {
       console.error('Error in fetchLeaderboard useEffect:', e);
     });
-  }, []);
+  }, [fetchLeaderboard]);
 
   // Sorted data using useMemo for performance
   const sortedRows = useMemo(() => {
@@ -90,28 +93,36 @@ export default function LeaderboardPage(): JSX.Element {
         <Button
           size="$3"
           variant={sortOrder === 'time_asc' ? 'outlined' : undefined}
-          onPress={() => setSortOrder('time_asc')}
+          onPress={() => {
+            setSortOrder('time_asc');
+          }}
         >
           Time ↑
         </Button>
         <Button
           size="$3"
           variant={sortOrder === 'time_desc' ? 'outlined' : undefined}
-          onPress={() => setSortOrder('time_desc')}
+          onPress={() => {
+            setSortOrder('time_desc');
+          }}
         >
           Time ↓
         </Button>
         <Button
           size="$3"
           variant={sortOrder === 'name_asc' ? 'outlined' : undefined}
-          onPress={() => setSortOrder('name_asc')}
+          onPress={() => {
+            setSortOrder('name_asc');
+          }}
         >
           Name ↑
         </Button>
         <Button
           size="$3"
           variant={sortOrder === 'name_desc' ? 'outlined' : undefined}
-          onPress={() => setSortOrder('name_desc')}
+          onPress={() => {
+            setSortOrder('name_desc');
+          }}
         >
           Name ↓
         </Button>

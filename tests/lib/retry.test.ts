@@ -6,32 +6,34 @@ describe('Retry utility', () => {
   describe('withRetry', () => {
     it('returns result on successful operation', async () => {
       const operation = vi.fn().mockResolvedValue('success');
-      
+
       const result = await withRetry(operation);
-      
+
       expect(result).toBe('success');
       expect(operation).toHaveBeenCalledTimes(1);
     });
 
     it('retries on failure and eventually succeeds', async () => {
-      const operation = vi.fn()
+      const operation = vi
+        .fn()
         .mockRejectedValueOnce(new Error('fail1'))
         .mockRejectedValueOnce(new Error('fail2'))
         .mockResolvedValue('success');
-      
+
       const result = await withRetry(operation);
-      
+
       expect(result).toBe('success');
       expect(operation).toHaveBeenCalledTimes(3);
     });
 
     it('throws last error after all retries exhausted', async () => {
       const lastError = new Error('final failure');
-      const operation = vi.fn()
+      const operation = vi
+        .fn()
         .mockRejectedValueOnce(new Error('fail1'))
         .mockRejectedValueOnce(new Error('fail2'))
         .mockRejectedValue(lastError);
-      
+
       await expect(withRetry(operation)).rejects.toThrow('final failure');
       expect(operation).toHaveBeenCalledTimes(DEFAULT_RETRY_CONFIG.maxAttempts);
     });
@@ -43,9 +45,9 @@ describe('Retry utility', () => {
         maxDelayMs: 1000,
         backoffMultiplier: 2,
       };
-      
+
       const operation = vi.fn().mockRejectedValue(new Error('always fails'));
-      
+
       await expect(withRetry(operation, customConfig)).rejects.toThrow('always fails');
       expect(operation).toHaveBeenCalledTimes(2);
     });
@@ -54,29 +56,30 @@ describe('Retry utility', () => {
       const operation = vi.fn(() => {
         throw new Error('sync error');
       });
-      
+
       await expect(withRetry(operation)).rejects.toThrow('sync error');
       expect(operation).toHaveBeenCalledTimes(DEFAULT_RETRY_CONFIG.maxAttempts);
     });
 
     it('waits between retries', async () => {
       const startTime = Date.now();
-      const operation = vi.fn()
+      const operation = vi
+        .fn()
         .mockRejectedValueOnce(new Error('fail'))
         .mockResolvedValue('success');
-      
+
       const config = {
         maxAttempts: 3,
         baseDelayMs: 100,
         maxDelayMs: 1000,
         backoffMultiplier: 2,
       };
-      
+
       await withRetry(operation, config);
-      
+
       const endTime = Date.now();
       const elapsed = endTime - startTime;
-      
+
       // Should have waited at least the base delay
       expect(elapsed).toBeGreaterThanOrEqual(config.baseDelayMs);
     });
