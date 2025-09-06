@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/sonalip9/ai-escape-room/compare/v1.3.0...v1.3.1) (2025-09-06)
+
+### Bug Fixes
+
+- correct motion initialization ([314fff3](https://github.com/sonalip9/ai-escape-room/commit/314fff37f5cd7ba99ea785a8a158ed3d8d23bcbf))
+
 # [1.3.0](https://github.com/sonalip9/ai-escape-room/compare/v1.2.0...v1.3.0) (2025-09-06)
 
 ### Features
