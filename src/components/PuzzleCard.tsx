@@ -3,9 +3,10 @@
 import { motion } from 'framer-motion';
 import type { JSX } from 'react';
 import { useState } from 'react';
-import { Button, Input, Text, YStack } from 'tamagui';
+import { Button, Input, Spinner, Text, YStack } from 'tamagui';
 
-import type { Puzzle } from '@/utils/puzzles';
+import type { PuzzleResponse } from '@/app/api/puzzle/route';
+import type { PostValidateRequest, PostValidateResponse } from '@/app/api/validate/route';
 
 const MotionText = motion(Text);
 
@@ -13,12 +14,13 @@ export default function PuzzleCard({
   puzzle,
   onSolve,
 }: {
-  puzzle: Puzzle;
+  puzzle: PuzzleResponse;
   onSolve: () => void;
 }): JSX.Element {
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   function resetPage(): void {
     setSuccess(false);
@@ -27,12 +29,32 @@ export default function PuzzleCard({
   }
 
   function submit(): void {
-    const normalized = input.trim().toLowerCase();
-    if (normalized === puzzle.answer.trim().toLowerCase()) {
-      setSuccess(true);
-    } else {
-      setFeedback('Not quite — try again.');
+    if (input.trim() === '') {
+      setFeedback('Please enter an answer.');
+      return;
     }
+    setIsLoading(true);
+
+    fetch('/api/validate', {
+      method: 'POST',
+      body: JSON.stringify({ puzzleId: puzzle.id, answer: input } as PostValidateRequest),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(async (res) => res.json() as Promise<PostValidateResponse>)
+      .then((data) => {
+        if (data.correct) {
+          setSuccess(true);
+        } else {
+          setFeedback('Not quite — try again.');
+        }
+      })
+      .catch((e: unknown) => {
+        console.error('Error validating answer:', e);
+        setFeedback('An error occurred. Please try again later.');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }
 
   return (
@@ -65,8 +87,11 @@ export default function PuzzleCard({
 
       {feedback !== null && feedback !== '' && <Text>{feedback}</Text>}
 
-      <YStack ai="center">
-        <Button onPress={submit}>Submit</Button>
+      <YStack ai="center" disabled={isLoading}>
+        <Button onPress={submit}>
+          {isLoading && <Spinner size="small" mr="$2" />}
+          Submit
+        </Button>
       </YStack>
     </YStack>
   );

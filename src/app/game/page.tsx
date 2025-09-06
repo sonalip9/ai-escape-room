@@ -2,19 +2,23 @@
 
 import { useRouter } from 'next/navigation';
 import type { JSX } from 'react';
-import { useEffect, useMemo, useState } from 'react';
-import { Button, Input, Text, XStack, YStack } from 'tamagui';
+import { useCallback, useEffect, useState } from 'react';
+import { Button, Input, Spinner, Text, XStack, YStack } from 'tamagui';
 
+import type { PostPuzzleRequest, PostPuzzleResponse, PuzzleResponse } from '@/app/api/puzzle/route';
 import PuzzleCard from '@/components/PuzzleCard';
 import Timer from '@/components/Timer';
 import { supabase } from '@/lib/supabase';
-import { hardcodedPuzzles } from '@/utils/puzzles';
+
+const NUMBER_OF_PUZZLE_PER_GAME = 3;
 
 // Game page states - New game start, play game, game over
 
 export default function GamePage(): JSX.Element {
   const router = useRouter();
-  const puzzles = useMemo(() => hardcodedPuzzles, []);
+
+  const [loading, setLoading] = useState(false);
+  const [puzzles, setPuzzles] = useState<PuzzleResponse[]>([]);
   const [index, setIndex] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [finishedAt, setFinishedAt] = useState<number | null>(null);
@@ -27,37 +31,62 @@ export default function GamePage(): JSX.Element {
     }
   }, [startedAt, finishedAt]);
 
-  function startGame(): void {
-    setIndex(0);
-    setStartedAt(Date.now());
-    setFinishedAt(null);
-    setTimeSeconds(null);
-  }
+  const fetchPuzzle = useCallback(async function (): Promise<void> {
+    console.debug('Fetching new puzzle...');
+    const res = await fetch('/api/puzzle', {
+      method: 'POST',
 
-  function onSolve(): void {
-    if (index < puzzles.length - 1) {
-      setIndex((i) => i + 1);
-    } else {
-      // Finished
-      const end = Date.now();
-      setFinishedAt(end);
-    }
-  }
+      body: JSON.stringify({ count: NUMBER_OF_PUZZLE_PER_GAME } as PostPuzzleRequest),
+    });
+    const data = (await res.json()) as PostPuzzleResponse;
+    console.debug('Fetched puzzles:', data.puzzles);
+    setPuzzles(data.puzzles);
+  }, []);
 
-  async function submitScore(): Promise<void> {
-    if (timeSeconds === null) return;
-    // Try to insert into supabase if available
-    try {
-      if (supabase) {
-        await supabase
-          .from('leaderboard')
-          .insert([{ name: name || 'Anonymous', time_seconds: timeSeconds }]);
+  const startGame = useCallback(
+    async function (): Promise<void> {
+      console.debug('Starting new game...');
+      setLoading(true);
+      await fetchPuzzle();
+      setIndex(1);
+      setStartedAt(Date.now());
+      setFinishedAt(null);
+      setTimeSeconds(null);
+      setLoading(false);
+    },
+    [fetchPuzzle],
+  );
+
+  const onSolve = useCallback(
+    function (): void {
+      console.debug('Puzzle solved');
+      if (index < NUMBER_OF_PUZZLE_PER_GAME) {
+        setIndex((i) => i + 1);
+      } else {
+        const end = Date.now();
+        setFinishedAt(end);
       }
-    } catch (e) {
-      console.warn('Supabase insert failed', e);
-    }
-    router.push('/leaderboard');
-  }
+    },
+    [index],
+  );
+
+  const submitScore = useCallback(
+    async function (): Promise<void> {
+      if (timeSeconds === null) return;
+      // Try to insert into supabase if available
+      try {
+        if (supabase) {
+          await supabase
+            .from('leaderboard')
+            .insert([{ name: name || 'Anonymous', time_seconds: timeSeconds }]);
+        }
+      } catch (e) {
+        console.warn('Supabase insert failed', e);
+      }
+      router.push('/leaderboard');
+    },
+    [name, router, timeSeconds],
+  );
 
   // When finished show final screen with name input
   if (finishedAt !== null) {
@@ -85,7 +114,10 @@ export default function GamePage(): JSX.Element {
           <Button
             onPress={() => {
               setFinishedAt(null);
-              startGame();
+              startGame().catch((e: unknown) => {
+                console.error('Error starting the game:', e);
+                setLoading(false);
+              });
             }}
           >
             Play Again
@@ -98,15 +130,29 @@ export default function GamePage(): JSX.Element {
   return (
     <YStack p="$4" gap="$4" ai="center" jc="center" h="100vh">
       <Text fontSize="$5">
-        Escape Room — Puzzle {index + 1} / {puzzles.length}
+        Escape Room
+        {startedAt !== null
+          ? ` - Puzzle ${index.toString()} of ${NUMBER_OF_PUZZLE_PER_GAME.toString()}`
+          : ''}
       </Text>
 
       <Timer startedAt={startedAt} />
 
-      {startedAt === null ? (
-        <Button onPress={startGame}>Start</Button>
+      {startedAt === null || puzzles.length === 0 ? (
+        <Button
+          disabled={loading}
+          onPress={() => {
+            startGame().catch((e: unknown) => {
+              console.error('Error starting the game:', e);
+              setLoading(false);
+            });
+          }}
+        >
+          {loading && <Spinner size="small" mr="$2" />}
+          Start
+        </Button>
       ) : (
-        <PuzzleCard puzzle={puzzles[index]} onSolve={onSolve} />
+        <PuzzleCard puzzle={puzzles[index - 1]} onSolve={onSolve} />
       )}
 
       <Button

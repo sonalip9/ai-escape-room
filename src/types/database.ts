@@ -1,8 +1,14 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-type Insert<T extends { id: string }> = Omit<T, 'id'> & { id?: string };
+type OptionalIfNullable<T> = {
+  [K in keyof T as null extends T[K] ? K : never]?: T[K];
+} & {
+  [K in keyof T as null extends T[K] ? never : K]: T[K];
+};
 
-interface GenericTable<T extends { id: string } = { id: string }> {
+export type Insert<T extends { id: string }> = OptionalIfNullable<Omit<T, 'id'>> & { id?: string };
+
+export interface GenericTable<T extends { id: string } = { id: string }> {
   Row: T;
   Insert: Insert<T>;
   Update: Partial<T>;
@@ -15,6 +21,33 @@ export interface LeaderboardRow {
   time_seconds: number;
 }
 
+export const puzzleTypes = ['riddle', 'cipher', 'math'] as const;
+export type PuzzleType = (typeof puzzleTypes)[number];
+
+export interface PuzzleRow {
+  answer: string;
+  answers: Json[] | null;
+  created_at: string | null;
+  id: string;
+  normalized_answers: string[] | null;
+  normalized_question: string | null;
+  question: string;
+  source: string;
+  type: Database['public']['Enums']['puzzle_type'];
+}
+
+export interface AIAuditRow {
+  action: string;
+  created_at: string | null;
+  created_by: string | null;
+  id: string;
+  meta: Json | null;
+  model: string | null;
+  prompt: string | null;
+  puzzle_id: string | null;
+  response: Json | null;
+}
+
 export interface Database {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -23,13 +56,21 @@ export interface Database {
   };
   public: {
     Tables: {
+      ai_audit: GenericTable<AIAuditRow> & {
+        Relationships: [];
+      };
       leaderboard: GenericTable<LeaderboardRow> & {
+        Relationships: [];
+      };
+      puzzles: GenericTable<PuzzleRow> & {
         Relationships: [];
       };
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;
-    Enums: Record<never, never>;
+    Enums: {
+      puzzle_type: PuzzleType;
+    };
     CompositeTypes: Record<never, never>;
   };
 }
@@ -117,8 +158,8 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-    keyof DefaultSchema['Enums'] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema['Enums']
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -151,6 +192,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      puzzle_type: puzzleTypes,
+    },
   },
 } as const;
