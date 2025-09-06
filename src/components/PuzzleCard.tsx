@@ -8,7 +8,7 @@ import { Button, Input, Spinner, Text, YStack } from 'tamagui';
 import type { PuzzleResponse } from '@/app/api/puzzle/route';
 import type { PostValidateRequest, PostValidateResponse } from '@/app/api/validate/route';
 
-const MotionText = motion(Text);
+const MotionText = motion.create(Text);
 
 export default function PuzzleCard({
   puzzle,
