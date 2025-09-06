@@ -1,3 +1,9 @@
+# [1.3.0](https://github.com/sonalip9/ai-escape-room/compare/v1.2.0...v1.3.0) (2025-09-06)
+
+### Features
+
+- implement comprehensive leaderboard feature with security enhancements ([#7](https://github.com/sonalip9/ai-escape-room/issues/7)) ([29ac5dd](https://github.com/sonalip9/ai-escape-room/commit/29ac5dd6341993d2530801d03ab3322474da148c))
+
 # [1.2.0](https://github.com/sonalip9/ai-escape-room/compare/v1.1.1...v1.2.0) (2025-09-06)
 
 ### Features
