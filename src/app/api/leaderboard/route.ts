@@ -1,4 +1,3 @@
-import type { NextApiRequest } from 'next';
 import { NextResponse } from 'next/server';
 
 import { addLeaderboardEntry, loadLeaderboard } from '@/services/leaderboard';
@@ -24,11 +23,12 @@ export interface GetLeaderboardResponse {
   data: LeaderboardRow[];
 }
 
-export async function GET(req: NextApiRequest): Promise<NextResponse<GetLeaderboardResponse>> {
-  const query = req.query as GetLeaderboardQuery;
+export async function GET(req: Request): Promise<NextResponse<GetLeaderboardResponse>> {
+  const url = new URL(req.url);
+  const query = Object.fromEntries(url.searchParams) as GetLeaderboardQuery | undefined | null;
 
-  const limit = Number(query.limit) || 10;
-  const offset = Number(query.offset) || 0;
+  const limit = Number(query?.limit ?? 10);
+  const offset = Number(query?.offset ?? 0);
 
   if (Number.isNaN(limit) || limit < 1 || limit > 100 || Number.isNaN(offset) || offset < 0) {
     return NextResponse.json({ total: 0, data: [] }, { status: 400 });
@@ -37,8 +37,8 @@ export async function GET(req: NextApiRequest): Promise<NextResponse<GetLeaderbo
   return NextResponse.json(result);
 }
 
-export async function POST(req: NextApiRequest): Promise<NextResponse<PostLeaderboardResponse>> {
-  const { name, time_seconds } = req.body as PostLeaderboardRequest;
+export async function POST(req: Request): Promise<NextResponse<PostLeaderboardResponse>> {
+  const { name, time_seconds } = (await req.json()) as PostLeaderboardRequest;
 
   if (typeof time_seconds !== 'number' || !name || name.trim().length === 0) {
     return NextResponse.json(
