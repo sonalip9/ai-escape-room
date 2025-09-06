@@ -24,6 +24,7 @@ export default function GamePage(): JSX.Element {
   const [finishedAt, setFinishedAt] = useState<number | null>(null);
   const [timeSeconds, setTimeSeconds] = useState<number | null>(null);
   const [name, setName] = useState('');
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (startedAt !== null && finishedAt !== null) {
@@ -73,16 +74,35 @@ export default function GamePage(): JSX.Element {
     async function (): Promise<void> {
       if (timeSeconds === null) return;
 
+      setSubmissionError(null);
       try {
-        await fetch('/api/leaderboard', {
+        const res = await fetch('/api/leaderboard', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, time_seconds: timeSeconds } as PostLeaderboardRequest),
         });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          const errorMessage = errorData.error || 'Failed to submit score';
+          
+          if (res.status === 429) {
+            setSubmissionError('Rate limit exceeded. Please try again later.');
+            return;
+          } else if (res.status === 400) {
+            setSubmissionError(`Invalid submission: ${errorMessage}`);
+            return;
+          } else {
+            setSubmissionError('Failed to submit score. Please try again.');
+            return;
+          }
+        }
+
+        router.push('/leaderboard');
       } catch (e) {
         console.warn('Leaderboard API insert failed', e);
+        setSubmissionError('Network error. Please check your connection and try again.');
       }
-      router.push('/leaderboard');
     },
     [name, router, timeSeconds],
   );
@@ -93,6 +113,15 @@ export default function GamePage(): JSX.Element {
       <YStack p="$4" gap="$4" ai="center" jc="center" h="100vh">
         <Text fontSize="$6">🎉 You escaped!</Text>
         <Text>Your time: {timeSeconds} seconds</Text>
+        
+        {submissionError && (
+          <YStack p="$3" br={8} bg="rgba(255, 0, 0, 0.1)">
+            <Text color="red" fontSize="$3">
+              {submissionError}
+            </Text>
+          </YStack>
+        )}
+        
         <Input
           br="$6"
           placeholder="Your name (for leaderboard)"
