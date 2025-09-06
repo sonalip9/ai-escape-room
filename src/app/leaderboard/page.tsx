@@ -5,7 +5,7 @@ import type { JSX } from 'react';
 import { useEffect, useState } from 'react';
 import { Button, Text, YStack } from 'tamagui';
 
-import { loadLeaderboard } from '@/services/leaderboard';
+import type { GetLeaderboardResponse } from '@/app/api/leaderboard/route';
 import type { LeaderboardRow } from '@/types/database';
 
 export default function LeaderboardPage(): JSX.Element {
@@ -15,7 +15,8 @@ export default function LeaderboardPage(): JSX.Element {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadLeaderboard()
+    fetch('/api/leaderboard?limit=10')
+      .then(async (res) => res.json() as Promise<GetLeaderboardResponse>)
       .then((data) => {
         setRows(data.data);
       })

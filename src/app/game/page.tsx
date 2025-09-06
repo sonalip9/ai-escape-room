@@ -5,10 +5,10 @@ import type { JSX } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Input, Spinner, Text, XStack, YStack } from 'tamagui';
 
+import type { PostLeaderboardRequest } from '@/app/api/leaderboard/route';
 import type { PostPuzzleRequest, PostPuzzleResponse, PuzzleResponse } from '@/app/api/puzzle/route';
 import PuzzleCard from '@/components/PuzzleCard';
 import Timer from '@/components/Timer';
-import { addLeaderboardEntry } from '@/services/leaderboard';
 
 const NUMBER_OF_PUZZLE_PER_GAME = 3;
 
@@ -35,7 +35,6 @@ export default function GamePage(): JSX.Element {
     console.debug('Fetching new puzzle...');
     const res = await fetch('/api/puzzle', {
       method: 'POST',
-
       body: JSON.stringify({ count: NUMBER_OF_PUZZLE_PER_GAME } as PostPuzzleRequest),
     });
     const data = (await res.json()) as PostPuzzleResponse;
@@ -74,11 +73,14 @@ export default function GamePage(): JSX.Element {
     async function (): Promise<void> {
       if (timeSeconds === null) return;
 
-      // Try to insert into supabase if available
       try {
-        await addLeaderboardEntry(name, timeSeconds);
+        await fetch('/api/leaderboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, time_seconds: timeSeconds } as PostLeaderboardRequest),
+        });
       } catch (e) {
-        console.warn('Supabase insert failed', e);
+        console.warn('Leaderboard API insert failed', e);
       }
       router.push('/leaderboard');
     },
