@@ -12,15 +12,11 @@ describe('Rate limit middleware', () => {
     vi.setSystemTime(new Date(Date.now() + RATE_LIMIT_CONFIG.windowMs + 1000));
     cleanupExpiredEntries();
     vi.useRealTimers();
+    mockHandler.mockClear();
   });
 
   // Mock handler that returns a simple response
   const mockHandler = vi.fn().mockResolvedValue(NextResponse.json({ success: true, data: 'test' }));
-
-  beforeEach(() => {
-    mockHandler.mockClear();
-  });
-
   it('allows requests within rate limit', async () => {
     const rateLimitedHandler = withRateLimit(mockHandler);
 
