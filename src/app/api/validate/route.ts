@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { aiValidateAnswer } from '@/lib/ai';
+import { withRateLimit } from '@/lib/rate-limit-middleware';
 import { getPuzzleFromId } from '@/services/puzzles';
 import { fallbackPuzzles, localValidate } from '@/utils/puzzles';
 
@@ -54,8 +55,10 @@ async function validateAnswer(puzzleId: string, userAnswer: string): Promise<Val
   }
 }
 
-export async function POST(req: Request): Promise<NextResponse<PostValidateResponse>> {
+async function validateAnswerHandler(req: Request): Promise<NextResponse<PostValidateResponse>> {
   const { puzzleId, answer } = (await req.json()) as PostValidateRequest;
   const { correct } = await validateAnswer(puzzleId, answer);
   return NextResponse.json({ correct });
 }
+
+export const POST = withRateLimit(validateAnswerHandler);

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { cleanupExpiredEntries, RATE_LIMIT_CONFIG } from '@/lib/rate-limiter';
+
 const addLeaderboardEntryMock = vi.fn();
 const loadLeaderboardMock = vi.fn();
 vi.mock('@/services/leaderboard', () => ({
@@ -23,6 +25,11 @@ function mockPost(body: Record<string, unknown>): Request {
 
 describe('GET /api/leaderboard', () => {
   beforeEach(() => {
+    // Clear rate limiter state
+    vi.setSystemTime(new Date(Date.now() + RATE_LIMIT_CONFIG.windowMs + 1000));
+    cleanupExpiredEntries();
+    vi.useRealTimers();
+
     addLeaderboardEntryMock.mockReset();
     loadLeaderboardMock.mockReset();
     vi.clearAllMocks();
@@ -52,6 +59,11 @@ describe('GET /api/leaderboard', () => {
 
 describe('POST /api/leaderboard', () => {
   beforeEach(() => {
+    // Clear rate limiter state
+    vi.setSystemTime(new Date(Date.now() + RATE_LIMIT_CONFIG.windowMs + 1000));
+    cleanupExpiredEntries();
+    vi.useRealTimers();
+
     vi.clearAllMocks();
   });
 

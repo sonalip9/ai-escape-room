@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import type { GeneratePuzzleOptions } from '@/lib/ai';
 import { generatePuzzle } from '@/lib/ai';
+import { withRateLimit } from '@/lib/rate-limit-middleware';
 import { getRandomPuzzleFromDB, saveAIPuzzle } from '@/services/puzzles';
 import type { PuzzleRow, PuzzleType } from '@/types/database';
 import { fallbackPuzzles, getRandomPuzzleType, pickRandom } from '@/utils/puzzles';
@@ -63,7 +64,7 @@ async function generatePuzzleAPI(
   });
 }
 
-export async function POST(req: Request): Promise<NextResponse<PostPuzzleResponse>> {
+async function generatePuzzleHandler(req: Request): Promise<NextResponse<PostPuzzleResponse>> {
   const body = (await req.json()) as PostPuzzleRequest | undefined | null;
   const count = Math.max(1, Math.min(10, body?.count ?? 1)); // Limit count to 10 max
   const excludeIds = Array.isArray(body?.exclude_ids) ? body.exclude_ids : [];
@@ -81,3 +82,5 @@ export async function POST(req: Request): Promise<NextResponse<PostPuzzleRespons
 
   return NextResponse.json({ puzzles });
 }
+
+export const POST = withRateLimit(generatePuzzleHandler);
