@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { cleanupExpiredEntries, RATE_LIMIT_CONFIG } from '@/lib/rate-limiter';
 import { withRateLimit } from '@/lib/rate-limit-middleware';
+import { cleanupExpiredEntries, RATE_LIMIT_CONFIG } from '@/lib/rate-limiter';
+
+type TestResponse = { success: true; data: string } | { success: false; error: string };
 
 describe('Rate limit middleware', () => {
   beforeEach(() => {
@@ -13,9 +15,7 @@ describe('Rate limit middleware', () => {
   });
 
   // Mock handler that returns a simple response
-  const mockHandler = vi.fn(async (req: Request) => {
-    return NextResponse.json({ success: true, data: 'test' });
-  });
+  const mockHandler = vi.fn().mockResolvedValue(NextResponse.json({ success: true, data: 'test' }));
 
   beforeEach(() => {
     mockHandler.mockClear();
@@ -30,7 +30,7 @@ describe('Rate limit middleware', () => {
     });
 
     const response = await rateLimitedHandler(request);
-    const data = await response.json();
+    const data = (await response.json()) as TestResponse;
 
     expect(response.status).toBe(200);
     expect(data).toEqual({ success: true, data: 'test' });
@@ -62,7 +62,7 @@ describe('Rate limit middleware', () => {
     });
 
     const response = await rateLimitedHandler(blockedRequest);
-    const data = await response.json();
+    const data = (await response.json()) as TestResponse;
 
     expect(response.status).toBe(429);
     expect(data).toEqual({
@@ -130,10 +130,10 @@ describe('Rate limit middleware', () => {
   });
 
   it('preserves existing response headers', async () => {
-    const handlerWithHeaders = vi.fn(async (req: Request) => {
+    const handlerWithHeaders = vi.fn(async (_req: Request) => {
       const response = NextResponse.json({ success: true });
       response.headers.set('Custom-Header', 'test-value');
-      return response;
+      return Promise.resolve(response);
     });
 
     const rateLimitedHandler = withRateLimit(handlerWithHeaders);

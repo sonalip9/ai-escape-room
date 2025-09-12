@@ -43,7 +43,9 @@ async function getLeaderboardHandler(req: Request): Promise<NextResponse<GetLead
 
 export const GET = withRateLimit(getLeaderboardHandler);
 
-async function postLeaderboardHandler(req: Request): Promise<NextResponse<PostLeaderboardResponse>> {
+async function postLeaderboardHandler(
+  req: Request,
+): Promise<NextResponse<PostLeaderboardResponse>> {
   const startTime = Date.now();
 
   try {

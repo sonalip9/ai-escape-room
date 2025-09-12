@@ -29,7 +29,7 @@ describe('GET /api/leaderboard', () => {
     vi.setSystemTime(new Date(Date.now() + RATE_LIMIT_CONFIG.windowMs + 1000));
     cleanupExpiredEntries();
     vi.useRealTimers();
-    
+
     addLeaderboardEntryMock.mockReset();
     loadLeaderboardMock.mockReset();
     vi.clearAllMocks();
@@ -63,7 +63,7 @@ describe('POST /api/leaderboard', () => {
     vi.setSystemTime(new Date(Date.now() + RATE_LIMIT_CONFIG.windowMs + 1000));
     cleanupExpiredEntries();
     vi.useRealTimers();
-    
+
     vi.clearAllMocks();
   });
 
