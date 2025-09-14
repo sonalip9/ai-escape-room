@@ -10,14 +10,19 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>();
 
+export interface RateLimitConfig {
+  maxRequests: number;
+  windowMs: number;
+}
+
 /**
  * Rate limiter configuration
  */
-export const RATE_LIMIT_CONFIG = {
+export const RATE_LIMIT_CONFIG: RateLimitConfig = {
   // Maximum submissions per window
   maxRequests: 3,
-  // Time window in milliseconds (5 minutes)
-  windowMs: 5 * 60 * 1000,
+  // Time window in milliseconds (1 minutes)
+  windowMs: 1 * 60 * 1000,
 } as const;
 
 /**
@@ -25,7 +30,10 @@ export const RATE_LIMIT_CONFIG = {
  * @param identifier - Usually IP address or user identifier
  * @returns Object with allowed status and remaining attempts
  */
-export function checkRateLimit(identifier: string): {
+export function checkRateLimit(
+  identifier: string,
+  config: RateLimitConfig = RATE_LIMIT_CONFIG,
+): {
   allowed: boolean;
   remaining: number;
   resetTime: number;
@@ -37,16 +45,16 @@ export function checkRateLimit(identifier: string): {
     // First request or window has expired
     store.set(identifier, {
       count: 1,
-      resetTime: now + RATE_LIMIT_CONFIG.windowMs,
+      resetTime: now + config.windowMs,
     });
     return {
       allowed: true,
-      remaining: RATE_LIMIT_CONFIG.maxRequests - 1,
-      resetTime: now + RATE_LIMIT_CONFIG.windowMs,
+      remaining: config.maxRequests - 1,
+      resetTime: now + config.windowMs,
     };
   }
 
-  if (entry.count >= RATE_LIMIT_CONFIG.maxRequests) {
+  if (entry.count >= config.maxRequests) {
     // Rate limit exceeded
     return {
       allowed: false,
@@ -61,7 +69,7 @@ export function checkRateLimit(identifier: string): {
 
   return {
     allowed: true,
-    remaining: RATE_LIMIT_CONFIG.maxRequests - entry.count,
+    remaining: config.maxRequests - entry.count,
     resetTime: entry.resetTime,
   };
 }
