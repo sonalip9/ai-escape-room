@@ -6,6 +6,9 @@ import { cleanupExpiredEntries, RATE_LIMIT_CONFIG } from '@/lib/rate-limiter';
 
 type TestResponse = { success: true; data: string } | { success: false; error: string };
 
+// Mock handler that returns a simple response
+const mockHandler = vi.fn().mockResolvedValue(NextResponse.json({ success: true, data: 'test' }));
+
 describe('Rate limit middleware', () => {
   beforeEach(() => {
     // Clear the internal store by calling cleanup with expired entries
@@ -15,8 +18,6 @@ describe('Rate limit middleware', () => {
     mockHandler.mockClear();
   });
 
-  // Mock handler that returns a simple response
-  const mockHandler = vi.fn().mockResolvedValue(NextResponse.json({ success: true, data: 'test' }));
   it('allows requests within rate limit', async () => {
     const rateLimitedHandler = withRateLimit(mockHandler);
 

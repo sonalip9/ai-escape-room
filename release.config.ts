@@ -1,4 +1,4 @@
-import { GlobalConfig } from 'semantic-release';
+import type { GlobalConfig } from 'semantic-release';
 
 const config: GlobalConfig = {
   branches: ['main'],

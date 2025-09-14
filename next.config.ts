@@ -3,9 +3,8 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* Config options here */
-  turbopack: {
-    root: __dirname,
-  },
+  turbopack: { root: __dirname },
+  eslint: { dirs: ['src', 'tests'] },
 };
 
 const tamaguiPlugin = withTamagui({
