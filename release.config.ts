@@ -10,12 +10,12 @@ const config: GlobalConfig = {
     '@semantic-release/release-notes-generator',
 
     // Create or update the changelog file in the local project repository
-    [
-      '@semantic-release/changelog',
-      {
-        changelogFile: 'CHANGELOG.md',
-      },
-    ],
+    ['@semantic-release/changelog', { changelogFile: 'CHANGELOG.md' }],
+
+    // Publish to npm, but skip actual publishing (useful for private packages)
+    ['@semantic-release/npm', { npmPublish: false }],
+
+    // Commit the changelog and package.json updates back to the repository
     [
       '@semantic-release/git',
       {
@@ -23,6 +23,8 @@ const config: GlobalConfig = {
         message: 'ci(release): ${nextRelease.version}\n\n${nextRelease.notes}',
       },
     ],
+
+    // Create a GitHub release and add release notes
     [
       '@semantic-release/github',
       {
